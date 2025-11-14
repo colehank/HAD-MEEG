@@ -1,28 +1,24 @@
 # %%
+from __future__ import annotations
+
+import os
+import pickle
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+
+import matplotlib.pyplot as plt
+import mne
 import numpy as np
 import pandas as pd
-import mne
-import pickle
+from joblib import delayed
+from joblib import Parallel
 from tqdm.auto import tqdm
-from typing import Optional, Dict, Tuple
-import matplotlib.pyplot as plt
-import os
-from joblib import Parallel, delayed
 from tqdm_joblib import tqdm_joblib
 
-import numpy as np
-import pandas as pd
-import mne
-import pickle
-from tqdm.auto import tqdm
-from typing import Optional, Dict, Tuple
-import matplotlib.pyplot as plt
-import os
-from joblib import Parallel, delayed
-from tqdm_joblib import tqdm_joblib
 
 class MarkerHandler:
-    def __init__(self, fp: Optional[str] = None, preload: bool = True):
+    def __init__(self, fp: str | None = None, preload: bool = True):
 
         self.fp = fp
         self.preload = preload
@@ -31,7 +27,7 @@ class MarkerHandler:
             self.dtype = 'meg' if 'meg' in fp.split('/')[-1] else 'eeg'
             if self.preload:
                 self.load()
-    
+
     @classmethod
     def from_events(cls, events: np.ndarray, sfreq: float):
         """
@@ -56,7 +52,7 @@ class MarkerHandler:
         self.trigger_info = dict(zip(unique_vals, counts))
         return self.raw
 
-    def _compute_code_stats(self) -> Dict[int, Dict]:
+    def _compute_code_stats(self) -> dict[int, dict]:
         stats = {}
         for code, count in self.trigger_info.items():
             idx = np.where(self.triggers == code)[0]
@@ -78,7 +74,7 @@ class MarkerHandler:
             )
         return stats
 
-    def _infer_start_end(self, stats: Optional[Dict[int, Dict]] = None) -> Dict[str, Optional[int]]:
+    def _infer_start_end(self, stats: dict[int, dict] | None = None) -> dict[str, int | None]:
         if stats is None:
             stats = self._compute_code_stats()
 
@@ -101,21 +97,20 @@ class MarkerHandler:
 
         start_code = start_candidates[0] if start_candidates else None
 
- 
         if len(end_candidates) > 1 and start_code in end_candidates:
             end_candidates.remove(start_code)
         end_code = end_candidates[0] if end_candidates else None
 
         return {
             'begin': start_code,
-            'end': end_code
+            'end': end_code,
         }
-    
+
     def _infer_frame(
-        self, 
-        stats: Optional[Dict[int, Dict]] = None, 
-        exclude: Optional[set] = None
-    ) -> Optional[int]:
+        self,
+        stats: dict[int, dict] | None = None,
+        exclude: set | None = None,
+    ) -> int | None:
         if stats is None:
             stats = self._compute_code_stats()
         if exclude is None:
@@ -149,16 +144,19 @@ class MarkerHandler:
                 best_code = c
 
         if best_code is None:
-            best_code = max(candidates.keys(), key=lambda c: candidates[c]['count'])
+            best_code = max(
+                candidates.keys(),
+                key=lambda c: candidates[c]['count'],
+            )
 
         return best_code
-    
+
     def _infer_resp(
-        self, 
-        stats: Optional[Dict[int, Dict]] = None, 
-        fram_code: Optional[int] = None, 
-        start_end: Optional[Dict[str, Optional[int]]] = None
-    ) -> Optional[int]:
+        self,
+        stats: dict[int, dict] | None = None,
+        fram_code: int | None = None,
+        start_end: dict[str, int | None] | None = None,
+    ) -> int | None:
         if stats is None:
             stats = self._compute_code_stats()
         if start_end is None:
@@ -167,7 +165,7 @@ class MarkerHandler:
         exclude = {
             start_end.get('begin'),
             start_end.get('end'),
-            fram_code
+            fram_code,
         }
         exclude = {c for c in exclude if c is not None}
 
@@ -186,7 +184,9 @@ class MarkerHandler:
         resp_scores = {}
         for c in candidates:
             samples = stats[c]['samples']
-            idx_prev = np.searchsorted(frame_samples, samples, side='right') - 1
+            idx_prev = np.searchsorted(
+                frame_samples, samples, side='right',
+            ) - 1
             valid = idx_prev >= 0
             if not np.any(valid):
                 continue
@@ -215,10 +215,12 @@ class MarkerHandler:
         return candidates[0]
 
     # ============== 对外：基础 event_id（4 键） ==============
-    def infer_event_id(self) -> Dict[str, Optional[int]]:
+    def infer_event_id(self) -> dict[str, int | None]:
         if not hasattr(self, 'events'):
             if self.fp is None:
-                raise RuntimeError("No events found and no raw file path (fp) was provided.")
+                raise RuntimeError(
+                    'No events found and no raw file path (fp) was provided.',
+                )
             self.load()
 
         stats = self._compute_code_stats()
@@ -234,7 +236,7 @@ class MarkerHandler:
         }
         return event_id
 
-    def _events_video_start_off(self, n_videos: int = 90) -> Tuple[np.ndarray, Dict[str, int]]:
+    def _events_video_start_off(self, n_videos: int = 90) -> tuple[np.ndarray, dict[str, int]]:
         """
         1. 利用 frame marker 自动分出每段视频
         2. 要求恰好 n_videos 段，否则 raise ValueError
@@ -252,13 +254,17 @@ class MarkerHandler:
         """
         if not hasattr(self, 'events'):
             if self.fp is None:
-                raise RuntimeError("No events found and no raw file path (fp) was provided.")
+                raise RuntimeError(
+                    'No events found and no raw file path (fp) was provided.',
+                )
             self.load()
 
         base_event_id = self.infer_event_id()
         fram_code = base_event_id['fram']
         if fram_code is None:
-            raise ValueError("Cannot infer 'fram' code; video segmentation is impossible.")
+            raise ValueError(
+                "Cannot infer 'fram' code; video segmentation is impossible.",
+            )
 
         stats = self._compute_code_stats()
         frame_stats = stats[fram_code]
@@ -266,12 +272,12 @@ class MarkerHandler:
         frame_event_idx = frame_stats['idx']
 
         if frame_samples.size < 2:
-            raise ValueError("Not enough frame markers to segment videos.")
+            raise ValueError('Not enough frame markers to segment videos.')
 
         diffs = np.diff(frame_samples)
         median_diff = np.median(diffs)
         if median_diff <= 0:
-            raise ValueError("Cannot infer frame interval from data.")
+            raise ValueError('Cannot infer frame interval from data.')
 
         # 尝试若干 gap 因子，找到能分成 n_videos 段的那个
         factors = [3, 4, 5, 6, 7, 8, 10, 12, 15, 20]
@@ -288,8 +294,8 @@ class MarkerHandler:
 
         if chosen_factor is None:
             raise ValueError(
-                f"Expected {n_videos} videos, but could not segment frame markers into {n_videos} groups. "
-                f"Segments by gap factors {factors}: {n_by_factor}"
+                f'Expected {n_videos} videos, but could not segment frame markers into {n_videos} groups. '
+                f'Segments by gap factors {factors}: {n_by_factor}',
             )
 
         gap_thr = median_diff * chosen_factor
@@ -301,12 +307,14 @@ class MarkerHandler:
         n_segments = len(start_idx)
         if n_segments != n_videos:
             raise ValueError(
-                f"Expected {n_videos} videos, but got {n_segments} after applying threshold factor {chosen_factor}."
+                f'Expected {n_videos} videos, but got {n_segments} after applying threshold factor {chosen_factor}.',
             )
 
-        sfreq = getattr(self, "sfreq", None)
+        sfreq = getattr(self, 'sfreq', None)
         if sfreq is None or sfreq <= 0:
-            raise ValueError("Sampling frequency (sfreq) is not available or invalid.")
+            raise ValueError(
+                'Sampling frequency (sfreq) is not available or invalid.',
+            )
 
         # 每段的首帧 / 末帧 sample
         on_samples = frame_samples[start_idx]
@@ -314,8 +322,8 @@ class MarkerHandler:
         dur_samples = off_samples - on_samples
         dur_sec = dur_samples / sfreq
 
-        expected_dur = 2.0 
-        tol = 0.25# 容忍度（秒），可按需要调，比如 0.2 / 0.3
+        expected_dur = 2.0
+        tol = 0.25  # 容忍度（秒），可按需要调，比如 0.2 / 0.3
         lower = expected_dur - tol
         upper = expected_dur + tol
 
@@ -323,11 +331,11 @@ class MarkerHandler:
         if np.any(bad_mask):
             bad_idx = np.where(bad_mask)[0]
             msg = (
-                f"Video duration check failed for {len(bad_idx)} segments. "
-                f"Expected ~{expected_dur:.3f}s (±{tol:.3f}s) from video on to video off, "
-                f"but got durations in seconds: "
-                f"min={dur_sec.min():.3f}, max={dur_sec.max():.3f}. "
-                f"Bad segment indices (0-based): {bad_idx.tolist()}"
+                f'Video duration check failed for {len(bad_idx)} segments. '
+                f'Expected ~{expected_dur:.3f}s (±{tol:.3f}s) from video on to video off, '
+                f'but got durations in seconds: '
+                f'min={dur_sec.min():.3f}, max={dur_sec.max():.3f}. '
+                f'Bad segment indices (0-based): {bad_idx.tolist()}'
             )
             raise ValueError(msg)
 
@@ -355,11 +363,10 @@ class MarkerHandler:
 
         return new_events, new_event_id
 
-
     def _simplify_events_for_videos(
-        self, 
-        n_videos: int = 90
-    ) -> Tuple[np.ndarray, Dict[str, int]]:
+        self,
+        n_videos: int = 90,
+    ) -> tuple[np.ndarray, dict[str, int]]:
         """
         1) 基于 _events_video_start_off 得到带 video on/off 的 events
         2) events 简化：只保留 video on, video off, begin, end 以及需要的 resp
@@ -374,7 +381,9 @@ class MarkerHandler:
         5) 自查：video on / video off 数量各 n_videos，
                  且选中的 begin / end 事件确实保留下来
         """
-        new_events, full_event_id = self._events_video_start_off(n_videos=n_videos)
+        new_events, full_event_id = self._events_video_start_off(
+            n_videos=n_videos,
+        )
 
         start_code = full_event_id['begin']
         end_code = full_event_id['end']
@@ -383,9 +392,13 @@ class MarkerHandler:
         resp_code = full_event_id['resp']
 
         if start_code is None:
-            raise ValueError("No 'begin' code inferred; cannot enforce single begin.")
+            raise ValueError(
+                "No 'begin' code inferred; cannot enforce single begin.",
+            )
         if end_code is None:
-            raise ValueError("No 'end' code inferred; cannot enforce single end.")
+            raise ValueError(
+                "No 'end' code inferred; cannot enforce single end.",
+            )
 
         triggers = new_events[:, 2]
         samples = new_events[:, 0]
@@ -396,7 +409,7 @@ class MarkerHandler:
         if n_video_on != n_videos or n_video_off != n_videos:
             raise ValueError(
                 f"Expected {n_videos} 'video on' and {n_videos} 'video off' events, "
-                f"but got {n_video_on} and {n_video_off}."
+                f'but got {n_video_on} and {n_video_off}.',
             )
 
         # 2) 视频时间范围
@@ -425,9 +438,13 @@ class MarkerHandler:
             & (samples[start_idx_all] <= start_window_end)
         ]
         if start_candidates.size > 0:
-            keep_start_idx = int(start_candidates[np.argmin(samples[start_candidates])])
+            keep_start_idx = int(
+                start_candidates[np.argmin(samples[start_candidates])],
+            )
         else:
-            keep_start_idx = int(start_idx_all[np.argmin(samples[start_idx_all])])
+            keep_start_idx = int(
+                start_idx_all[np.argmin(samples[start_idx_all])],
+            )
 
         # 3.2 选 end：最后一个视频后 5s 内的第一个；否则全局最晚
         end_window_start = last_video_sample
@@ -437,7 +454,9 @@ class MarkerHandler:
             & (samples[end_idx_all] <= end_window_end)
         ]
         if end_candidates.size > 0:
-            keep_end_idx = int(end_candidates[np.argmin(samples[end_candidates])])
+            keep_end_idx = int(
+                end_candidates[np.argmin(samples[end_candidates])],
+            )
         else:
             keep_end_idx = int(end_idx_all[np.argmax(samples[end_idx_all])])
 
@@ -492,8 +511,8 @@ class MarkerHandler:
         n_vf = int(np.sum(simp_triggers == video_off_code))
         if n_vo != n_videos or n_vf != n_videos:
             raise ValueError(
-                "Final events count check failed for video on/off: "
-                f"video on={n_vo}, video off={n_vf}, expected {n_videos}."
+                'Final events count check failed for video on/off: '
+                f'video on={n_vo}, video off={n_vf}, expected {n_videos}.',
             )
 
         # 6) 检查选中的 begin / end 事件确实保留下来
@@ -502,21 +521,21 @@ class MarkerHandler:
 
         has_start = np.any(
             (simplified_events[:, 0] == start_sample)
-            & (simplified_events[:, 2] == start_code)
+            & (simplified_events[:, 2] == start_code),
         )
         has_end = np.any(
             (simplified_events[:, 0] == end_sample)
-            & (simplified_events[:, 2] == end_code)
+            & (simplified_events[:, 2] == end_code),
         )
 
         if not has_start or not has_end:
             n_s = int(np.sum(simp_triggers == start_code))
             n_e = int(np.sum(simp_triggers == end_code))
             raise ValueError(
-                "Final events count check failed: "
-                f"start_present={has_start}, end_present={has_end}, "
-                f"start_code_count={n_s}, end_code_count={n_e}, "
-                f"video on={n_vo}, video off={n_vf}."
+                'Final events count check failed: '
+                f'start_present={has_start}, end_present={has_end}, '
+                f'start_code_count={n_s}, end_code_count={n_e}, '
+                f'video on={n_vo}, video off={n_vf}.',
             )
 
         simplified_event_id = {
@@ -533,10 +552,10 @@ class MarkerHandler:
         return simplified_events, simplified_event_id
 
     def infer(
-        self, 
+        self,
         order=None,
         n_videos: int = 90,
-    ) -> Tuple[np.ndarray, Dict[str, int]]:
+    ) -> tuple[np.ndarray, dict[str, int]]:
         """
         总入口：
         1）基于 events 自动推断 begin/end/fram/resp
@@ -554,12 +573,15 @@ class MarkerHandler:
                      （若没有 resp 则不含该键）
         """
         simplified_events, simplified_event_id = self._simplify_events_for_videos(
-            n_videos=n_videos
+            n_videos=n_videos,
         )
 
         # 默认编码顺序（不强制包含 resp；如果希望重编码 resp，可在 order 里加 'resp'）
         if order is None or len(order) == 0:
-            order = {'begin': 1, 'video on': 2, 'video off': 3, 'resp': 4, 'end': 5}
+            order = {
+                'begin': 1, 'video on': 2,
+                'video off': 3, 'resp': 4, 'end': 5,
+            }
 
         start_code = simplified_event_id['begin']
         end_code = simplified_event_id['end']
@@ -571,21 +593,25 @@ class MarkerHandler:
         triggers0 = simplified_events[:, 2]
         idx_video_on = np.where(triggers0 == video_on_code)[0]
         idx_video_off = np.where(triggers0 == video_off_code)[0]
-        idx_resp = np.where(triggers0 == resp_code)[0] if resp_code is not None else None
+        idx_resp = np.where(triggers0 == resp_code)[
+            0
+        ] if resp_code is not None else None
 
         # begin / end 的索引
         if start_code == end_code:
             idx_be = np.where(triggers0 == start_code)[0]
             if idx_be.size == 0:
                 raise RuntimeError(
-                    "Internal error: no events with begin/end code after simplification."
+                    'Internal error: no events with begin/end code after simplification.',
                 )
             idx_begin = int(idx_be[0])
             idx_end = int(idx_be[-1])
         else:
             idx_begin_arr = np.where(triggers0 == start_code)[0]
             idx_end_arr = np.where(triggers0 == end_code)[0]
-            idx_begin = int(idx_begin_arr[0]) if idx_begin_arr.size > 0 else None
+            idx_begin = int(
+                idx_begin_arr[0],
+            ) if idx_begin_arr.size > 0 else None
             idx_end = int(idx_end_arr[0]) if idx_end_arr.size > 0 else None
 
         events_recoded = simplified_events.copy()
@@ -620,15 +646,13 @@ class MarkerHandler:
 
         return events_recoded, final_event_id
 
-
-
     def modify(
         self,
         raw: mne.io.BaseRaw,
         events: np.ndarray,
-        event_id: Dict[str, int],
+        event_id: dict[str, int],
         keep_bad: bool = True,
-        ):
+    ):
         """
         用给定的 events 和 event_id 更新 raw.annotations。
 
@@ -649,7 +673,7 @@ class MarkerHandler:
         raw : mne.io.BaseRaw
             更新了 annotations 的 Raw 对象（与输入是同一个对象）。
         """
-        sfreq = raw.info["sfreq"]
+        sfreq = raw.info['sfreq']
 
         # 1. 构造 ID -> 描述 的映射（annotations_from_events 需要这个方向）
         id_to_desc = {code: name for name, code in event_id.items()}
@@ -659,13 +683,16 @@ class MarkerHandler:
             events=events,
             sfreq=sfreq,
             event_desc=id_to_desc,
-            orig_time=raw.info.get("meas_date"),
+            orig_time=raw.info.get('meas_date'),
         )
 
         # 3. 是否保留原来的 BAD 段等标记
         if keep_bad and raw.annotations is not None and len(raw.annotations) > 0:
             bad_mask = np.array(
-                [desc.startswith("BAD") for desc in raw.annotations.description]
+                [
+                    desc.startswith('BAD')
+                    for desc in raw.annotations.description
+                ],
             )
             bad_anns = raw.annotations[bad_mask]
             # 合并：原 BAD 段 + 新事件标记
@@ -678,29 +705,32 @@ class MarkerHandler:
 
         return raw
 
-    def run(self, fp: str, n_videos: int = 90, order: Optional[Dict[str, int]] = None):
+    def run(self, fp: str, n_videos: int = 90, order: dict[str, int] | None = None):
         mh = MarkerHandler(fp=fp, preload=True)
         events, event_id = mh.infer(n_videos=n_videos, order=order)
         return self.modify(mh.raw, events, event_id)
 
-    
-def plot_events(raw,title=''):
+
+def plot_events(raw, title=''):
     events, event_id = mne.events_from_annotations(raw)
-    fig = mne.viz.plot_events(events, sfreq=raw.info['sfreq'], show=False, event_id=event_id)
+    fig = mne.viz.plot_events(
+        events, sfreq=raw.info['sfreq'], show=False, event_id=event_id,
+    )
     fig.suptitle(title)
     plt.close(fig)
     return fig
 
+
 def make_events(
     fp: str,
     n_videos: int = 90,
-    order: Optional[Dict[str, int]] = None,
+    order: dict[str, int] | None = None,
     onset_short: float = 3.0,
     onset_long: float = 6.0,
     group_size: int = 5,
     video_len: float = 2.0,
     resp_window: float = 1.0,
-) -> Tuple[np.ndarray, Dict[str, int]]:
+) -> tuple[np.ndarray, dict[str, int]]:
     """
     基于实验设计“从 begin/start 开始，5s 后第一个 video on，
     之后按 3s 间隔、每 5 个后 6s 间隔、视频长度 2s”的规则，
@@ -738,14 +768,18 @@ def make_events(
     resp_code = base_event_id.get('resp', None)
 
     if begin_code is None:
-        raise ValueError("make_events: cannot find 'begin/start' code from data.")
+        raise ValueError(
+            "make_events: cannot find 'begin/start' code from data.",
+        )
 
     sfreq = float(mh.sfreq)
     events_raw = mh.events
 
     begin_samples = events_raw[events_raw[:, 2] == begin_code, 0]
     if begin_samples.size == 0:
-        raise ValueError("make_events: no 'begin/start' events found in raw events.")
+        raise ValueError(
+            "make_events: no 'begin/start' events found in raw events.",
+        )
 
     begin_sample = int(begin_samples.min())
 
@@ -761,13 +795,16 @@ def make_events(
         resp_samples_all = np.array([], dtype=int)
 
     if order is None or len(order) == 0:
-        order = {"begin": 1, "video on": 2, "video off": 3, "end": 4, "resp": 5}
+        order = {
+            'begin': 1, 'video on': 2,
+            'video off': 3, 'end': 4, 'resp': 5,
+        }
 
-    begin_out = int(order.get("begin", 1))
-    video_on_out = int(order.get("video on", 2))
-    video_off_out = int(order.get("video off", 3))
-    end_out = int(order.get("end", 4))
-    resp_out = int(order.get("resp", 5))
+    begin_out = int(order.get('begin', 1))
+    video_on_out = int(order.get('video on', 2))
+    video_off_out = int(order.get('video off', 3))
+    end_out = int(order.get('end', 4))
+    resp_out = int(order.get('resp', 5))
 
     events_list = []
 
@@ -795,14 +832,19 @@ def make_events(
 
         if resp_samples_all.size > 0:
             # 找到 first resp in (off_s, off_s + resp_win_samp]
-            in_win = (resp_samples_all > off_s) & (resp_samples_all <= off_s + resp_win_samp)
+            in_win = (resp_samples_all > off_s) & (
+                resp_samples_all <= off_s + resp_win_samp
+            )
             if np.any(in_win):
-                resp_sample = int(resp_samples_all[in_win][0])  # 第一个真实 resp trigger
+                # 第一个真实 resp trigger
+                resp_sample = int(resp_samples_all[in_win][0])
                 events_list.append([resp_sample, 0, resp_out])
 
     if end_samples.size > 0:
         # 选在最后一个视频之后出现的第一个 end，如无就取最晚的一个
-        last_off = int(off_samples.max()) if off_samples.size > 0 else begin_sample
+        last_off = int(
+            off_samples.max(),
+        ) if off_samples.size > 0 else begin_sample
         after_last = end_samples[end_samples >= last_off]
         if after_last.size > 0:
             end_sample = int(after_last[0])
@@ -822,7 +864,7 @@ def make_events(
         raise RuntimeError(
             f"make_events internal error: expected {n_videos} 'video on' and "
             f"{n_videos} 'video off', but got {n_on} and {n_off}. "
-            "请检查 begin/start 推断是否异常。"
+            '请检查 begin/start 推断是否异常。',
         )
 
     event_id = {
@@ -836,6 +878,7 @@ def make_events(
         event_id['end'] = end_out
 
     return events_arr, event_id
+
 
 def extend_raw_to_fit_events(
     raw: mne.io.BaseRaw,
@@ -859,7 +902,7 @@ def extend_raw_to_fit_events(
     if events is None or events.size == 0:
         return raw
 
-    sfreq = float(raw.info["sfreq"])
+    sfreq = float(raw.info['sfreq'])
 
     # events 的最大 sample（相对于 raw.first_samp 的索引）
     last_event_sample = int(events[:, 0].max())
@@ -906,17 +949,19 @@ def extend_raw_to_fit_events(
 
 
 def run_in_one(
-    fp: str, 
-    n_videos: int = 90, 
-    order: Optional[Dict[str, int]] = {"begin": 1, "video on": 2, "video off": 3, "resp": 4, "end": 5},
+    fp: str,
+    n_videos: int = 90,
+    order: dict[str, int] | None = {
+        'begin': 1, 'video on': 2, 'video off': 3, 'resp': 4, 'end': 5,
+    },
     return_details: bool = True,
-    ):
+):
     mh = MarkerHandler(fp=fp, preload=True)
     try:
         events, event_id = mh.infer(n_videos=n_videos, order=order)
-        info = "success"
+        info = 'success'
     except Exception as e:
-        if "Expected 90 videos" in str(e):
+        if 'Expected 90 videos' in str(e):
             events, event_id = make_events(fp, n_videos=n_videos, order=order)
             try:
                 raw = mne.io.read_raw(fp, preload=True)
@@ -925,25 +970,28 @@ def run_in_one(
                     events=events,
                     sfreq=raw.info['sfreq'],
                     event_desc={code: name for name, code in event_id.items()},
-                    orig_time=raw_ext.info.get("meas_date"),
+                    orig_time=raw_ext.info.get('meas_date'),
                 )
                 raw_ext.set_annotations(new_ann)
-                info = "success after recovered"
+                info = 'success after recovered'
                 if return_details:
                     return raw_ext, info
                 return raw_ext
             except Exception as e2:
                 raise RuntimeError(
-                    f"Original error: {str(e)}; Recovery error: {str(e2)}"
+                    f'Original error: {str(e)}; Recovery error: {str(e2)}',
                 ) from e2
         else:
             raise e
     return mh.modify(mh.raw, events, event_id) if not return_details else (mh.modify(mh.raw, events, event_id), info)
 
+
 def run_in_one(
-    fp: str, 
-    n_videos: int = 90, 
-    order: Optional[Dict[str, int]] = {"begin": 1, "video on": 2, "video off": 3, "resp": 4, "end": 5},
+    fp: str,
+    n_videos: int = 90,
+    order: dict[str, int] | None = {
+        'begin': 1, 'video on': 2, 'video off': 3, 'resp': 4, 'end': 5,
+    },
     return_details: bool = True,
 ):
     mh = MarkerHandler(fp=fp, preload=True)
@@ -951,9 +999,9 @@ def run_in_one(
     try:
         events, event_id = mh.infer(n_videos=n_videos, order=order)
         raw_out = mh.modify(mh.raw, events, event_id)
-        info = "success"
+        info = 'success'
     except Exception as e:
-        if "Expected 90 videos" in str(e):
+        if 'Expected 90 videos' in str(e):
             events, event_id = make_events(fp, n_videos=n_videos, order=order)
             try:
                 raw = mne.io.read_raw(fp, preload=True)
@@ -962,14 +1010,14 @@ def run_in_one(
                     events=events,
                     sfreq=raw.info['sfreq'],
                     event_desc={code: name for name, code in event_id.items()},
-                    orig_time=raw_ext.info.get("meas_date"),
+                    orig_time=raw_ext.info.get('meas_date'),
                 )
                 raw_ext.set_annotations(new_ann)
                 raw_out = raw_ext
-                info = "success after recovered"
+                info = 'success after recovered'
             except Exception as e2:
                 raise RuntimeError(
-                    f"Original error: {str(e)}; Recovery error: {str(e2)}"
+                    f'Original error: {str(e)}; Recovery error: {str(e2)}',
                 ) from e2
         else:
             raise e
@@ -980,20 +1028,27 @@ def run_in_one(
         return raw_out
 
 
-#%%
+# %%
 if __name__ == '__main__':
     with open('for_ev.pkl', 'rb') as f:
         for_ev = pickle.load(f)
 
-    dsgn_evid = {"begin": 1, "video on": 2, "video off": 3, "resp": 4, "end": 5}
+    dsgn_evid = {
+        'begin': 1, 'video on': 2,
+        'video off': 3, 'resp': 4, 'end': 5,
+    }
     mh = MarkerHandler()
     fig_dir = '/nfs/z1/userhome/zzl-zhangguohao/workingdir/HAD-MEEG_results/figs/marker'
     os.makedirs(fig_dir, exist_ok=True)
 
     def _process_marker(sub, dtype, run, fp):
-        raw, info = run_in_one(fp=fp, n_videos=90, order=dsgn_evid, return_details=True)
+        raw, info = run_in_one(
+            fp=fp, n_videos=90, order=dsgn_evid, return_details=True,
+        )
         fig = plot_events(raw, title=f'sub-{sub}_ses-{dtype}_run-{run}')
-        fig.savefig(f"{fig_dir}/sub-{sub}_ses-{dtype}_run-{run}_organized_marker.png")
+        fig.savefig(
+            f'{fig_dir}/sub-{sub}_ses-{dtype}_run-{run}_organized_marker.png',
+        )
         return None if info == 'success' else {'fp': fp, 'info': info}
 
     tasks = [
@@ -1004,8 +1059,11 @@ if __name__ == '__main__':
     ]
 
     with tqdm_joblib(total=len(tasks), desc='Organizing markers'):
-        results = Parallel(n_jobs=-1)(delayed(_process_marker)(*task) for task in tasks)
+        results = Parallel(n_jobs=-1)(
+            delayed(_process_marker)(*task)
+            for task in tasks
+        )
 
     bad_runs = [res for res in results if res is not None]
-    print("Bad runs:", bad_runs)
-#%%
+    print('Bad runs:', bad_runs)
+# %%
