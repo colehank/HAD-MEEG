@@ -4,11 +4,12 @@ from __future__ import annotations
 import os
 import os.path as op
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import font_manager as fm
+
 from src import MEEGConfig
 
 config = MEEGConfig()
@@ -31,6 +32,8 @@ colors = [cmap_(i / (10 - 1)) for i in range(10)]
 color_meg = colors[2]
 color_eeg = colors[-3]
 # %%
+
+
 def get_files(root_dir: str) -> dict[str, str]:
     """Get a dictionary mapping subject IDs to file paths in the specified directory.
 
@@ -89,7 +92,7 @@ def extract_sub_accuracy(file_path: str) -> list[dict[str, object]]:
                     'session': sess,
                     'run': run,
                     'accuracy': accuracy,
-                }
+                },
             )
 
     return subject_accuracy
@@ -119,7 +122,6 @@ def plot_accuracy_violin_box(
 
     fig, ax = plt.subplots(figsize=(12, 3), dpi=300)
 
-
     sns.violinplot(
         data=df,
         x='sub',
@@ -139,8 +141,10 @@ def plot_accuracy_violin_box(
         x='sub',
         y='acc',
         showcaps=True,
-        boxprops={'facecolor': 'dimgray', 'edgecolor': 'dimgray',
-                  'alpha': 0.6, 'linewidth': .8},
+        boxprops={
+            'facecolor': 'dimgray', 'edgecolor': 'dimgray',
+            'alpha': 0.6, 'linewidth': .8,
+        },
         showfliers=False,
         whiskerprops={'linewidth': 1.0, 'color': 'dimgray'},
         medianprops={'color': 'lightgoldenrodyellow', 'linewidth': 2.2},
@@ -148,8 +152,8 @@ def plot_accuracy_violin_box(
         ax=ax,
     )
 
-    ax.set_xlabel("Subject", fontsize=font_size)
-    ax.set_ylabel("Recognition Accuracy", fontsize=font_size)
+    ax.set_xlabel('Subject', fontsize=font_size)
+    ax.set_ylabel('Recognition Accuracy', fontsize=font_size)
     ax.tick_params(axis='both', labelsize=font_size - 2)
 
     ax.spines['right'].set_visible(False)
@@ -158,35 +162,43 @@ def plot_accuracy_violin_box(
     ax.set_ylim(0.47, 1)
     ax.set_yticks([0.6, 0.8, 1.0])
 
-    ax.legend(loc='lower right', frameon=False, fontsize=font_size - 4, 
-              bbox_to_anchor=(1.02, 0), 
-              handlelength=1)
+    ax.legend(
+        loc='lower right', frameon=False, fontsize=font_size - 4,
+        bbox_to_anchor=(1.02, 0),
+        handlelength=1,
+    )
 
     fig.subplots_adjust(bottom=0.15, left=0.08, right=0.98, top=0.9)
     plt.tight_layout()
     plt.show()
     return fig
 
+
 # %%
 if __name__ == '__main__':
     all_events = get_files(DERI_EV_DIR)
-    acc = extract_accuracy(all_events)    
-    
+    acc = extract_accuracy(all_events)
+
     acc.columns = [c.strip().lower() for c in acc.columns]
     sub_col = 'sub' if 'sub' in acc.columns else 'subject'
     acc_col = 'accuracy' if 'accuracy' in acc.columns else 'acc'
     mod_col = 'session' if 'session' in acc.columns else 'modality'
     df = acc[[sub_col, mod_col, acc_col]].copy()
-    df = df.rename(columns={sub_col: 'sub', mod_col: 'modality', acc_col: 'acc'})
+    df = df.rename(
+        columns={sub_col: 'sub', mod_col: 'modality', acc_col: 'acc'},
+    )
     df['modality'] = df['modality'].astype(str).str.upper().str.strip()
     df['sub'] = df['sub'].astype(str)
     df = df[df['modality'].isin(['EEG', 'MEG'])]
     fig = plot_accuracy_violin_box(df, FONT_SIZE, color_meg, color_eeg)
-    
-    
+
     acc.to_csv(op.join(SAVE_DIR, 'accuracy.csv'), index=False)
-    fig.savefig(op.join(FIG_DIR, 'accuracy.svg'),
-                dpi=300, bbox_inches='tight', transparent=True)
-    fig.savefig(op.join(FIG_DIR, 'accuracy.png'),
-                dpi=300, bbox_inches='tight', transparent=True)
+    fig.savefig(
+        op.join(FIG_DIR, 'accuracy.svg'),
+        dpi=300, bbox_inches='tight', transparent=True,
+    )
+    fig.savefig(
+        op.join(FIG_DIR, 'accuracy.png'),
+        dpi=300, bbox_inches='tight', transparent=True,
+    )
 # %%
