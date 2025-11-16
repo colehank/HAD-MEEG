@@ -1,12 +1,8 @@
-# %%
 from __future__ import annotations
 
 from functools import cached_property
 from pathlib import Path
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
 
 import pandas as pd
 from mne_bids import BIDSPath
@@ -156,10 +152,3 @@ class DataConfig(BaseSettings):
         if datatype == 'eeg':
             return self.eeg_raw_extension
         return None
-
-
-if __name__ == '__main__':
-    config = DataConfig()
-    print(config.subjects)
-    print(config.source_df.head())
-# %%

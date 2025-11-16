@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from typing import Literal
-from typing import Optional
 
 from mne.io import BaseRaw
-
+from loguru import logger
 DType = Literal['eeg', 'meg']
 
 
@@ -21,10 +20,11 @@ class BaseLoader:
                 raise ValueError('datatype cannot be inferred or is invalid.')
 
         assert dtype in ['eeg', 'meg'], "datatype must be 'eeg' or 'meg'"
+        
+        logger.trace(f"Initialized BaseLoader with dtype={dtype}")
         self.raw = raw
         self.dtype: DType = dtype
         self.random_state = random_state
-        self.bads = []
 
     def _infer_dtype(self, raw) -> str:
         ch_types = set(raw.get_channel_types())
