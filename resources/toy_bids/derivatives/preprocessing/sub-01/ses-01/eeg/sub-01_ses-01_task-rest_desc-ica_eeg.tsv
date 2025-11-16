@@ -1,0 +1,21 @@
+component	type	description	status	status_description	annotate_method	annotate_author	ic_type
+0	ica	Independent Component	bad	n/a	ICLabel	n/a	eye blink
+1	ica	Independent Component	bad	n/a	ICLabel	n/a	muscle artifact
+2	ica	Independent Component	bad	n/a	ICLabel	n/a	eye blink
+3	ica	Independent Component	good	n/a	ICLabel	n/a	brain
+4	ica	Independent Component	good	n/a	ICLabel	n/a	brain
+5	ica	Independent Component	bad	n/a	ICLabel	n/a	line noise
+6	ica	Independent Component	good	n/a	ICLabel	n/a	other
+7	ica	Independent Component	good	n/a	ICLabel	n/a	other
+8	ica	Independent Component	bad	n/a	ICLabel	n/a	muscle artifact
+9	ica	Independent Component	good	n/a	ICLabel	n/a	other
+10	ica	Independent Component	good	n/a	ICLabel	n/a	other
+11	ica	Independent Component	good	n/a	ICLabel	n/a	other
+12	ica	Independent Component	bad	n/a	ICLabel	n/a	muscle artifact
+13	ica	Independent Component	good	n/a	ICLabel	n/a	brain
+14	ica	Independent Component	good	n/a	ICLabel	n/a	other
+15	ica	Independent Component	good	n/a	ICLabel	n/a	other
+16	ica	Independent Component	bad	n/a	ICLabel	n/a	line noise
+17	ica	Independent Component	bad	n/a	ICLabel	n/a	line noise
+18	ica	Independent Component	good	n/a	ICLabel	n/a	other
+19	ica	Independent Component	good	n/a	ICLabel	n/a	other

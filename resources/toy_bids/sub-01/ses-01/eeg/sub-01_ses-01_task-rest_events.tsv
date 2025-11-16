@@ -1,0 +1,107 @@
+﻿onset	duration	trial_type	value	sample
+0.0	0.0	begin	1	0
+0.0	0.0	begin	1	0
+0.5	0.0	video on	4	500
+0.5	0.0	video on	4	500
+2.501	0.0	video off	3	2501
+2.501	0.0	video off	3	2501
+3.494	0.0	video on	4	3494
+3.494	0.0	video on	4	3494
+5.539	0.0	video off	3	5539
+5.539	0.0	video off	3	5539
+6.494	0.0	video on	4	6494
+6.494	0.0	video on	4	6494
+8.503	0.0	video off	3	8503
+8.503	0.0	video off	3	8503
+9.141	0.0	resp	2	9141
+9.141	0.0	resp	2	9141
+9.495	0.0	video on	4	9495
+9.495	0.0	video on	4	9495
+11.502	0.0	video off	3	11502
+11.502	0.0	video off	3	11502
+12.349	0.0	resp	2	12349
+12.349	0.0	resp	2	12349
+12.615	0.0	video on	4	12615
+12.615	0.0	video on	4	12615
+14.616	0.0	video off	3	14616
+14.616	0.0	video off	3	14616
+15.509	0.0	resp	2	15509
+15.509	0.0	resp	2	15509
+18.494	0.0	video on	4	18494
+18.494	0.0	video on	4	18494
+20.505	0.0	video off	3	20505
+20.505	0.0	video off	3	20505
+21.037	0.0	resp	2	21037
+21.037	0.0	resp	2	21037
+21.495	0.0	video on	4	21495
+21.495	0.0	video on	4	21495
+23.536	0.0	video off	3	23536
+23.536	0.0	video off	3	23536
+24.142	0.0	resp	2	24142
+24.142	0.0	resp	2	24142
+24.494	0.0	video on	4	24494
+24.494	0.0	video on	4	24494
+26.498	0.0	video off	3	26498
+26.498	0.0	video off	3	26498
+27.038	0.0	resp	2	27038
+27.038	0.0	resp	2	27038
+27.494	0.0	video on	4	27494
+27.494	0.0	video on	4	27494
+29.5	0.0	video off	3	29500
+29.5	0.0	video off	3	29500
+30.125	0.0	resp	2	30125
+30.125	0.0	resp	2	30125
+30.495	0.0	video on	4	30495
+30.495	0.0	video on	4	30495
+32.505	0.0	video off	3	32505
+32.505	0.0	video off	3	32505
+32.95	0.0	resp	2	32950
+32.95	0.0	resp	2	32950
+36.494	0.0	video on	4	36494
+36.494	0.0	video on	4	36494
+38.537	0.0	video off	3	38537
+38.537	0.0	video off	3	38537
+38.942	0.0	resp	2	38942
+38.942	0.0	resp	2	38942
+39.494	0.0	video on	4	39494
+39.494	0.0	video on	4	39494
+41.502	0.0	video off	3	41502
+41.502	0.0	video off	3	41502
+42.093	0.0	resp	2	42093
+42.093	0.0	resp	2	42093
+42.494	0.0	video on	4	42494
+42.494	0.0	video on	4	42494
+44.505	0.0	video off	3	44505
+44.505	0.0	video off	3	44505
+44.854	0.0	resp	2	44854
+44.854	0.0	resp	2	44854
+45.494	0.0	video on	4	45494
+45.494	0.0	video on	4	45494
+47.506	0.0	video off	3	47506
+47.506	0.0	video off	3	47506
+48.414	0.0	resp	2	48414
+48.414	0.0	resp	2	48414
+48.646	0.0	video on	4	48646
+48.646	0.0	video on	4	48646
+50.643	0.0	video off	3	50643
+50.643	0.0	video off	3	50643
+51.182	0.0	resp	2	51182
+51.182	0.0	resp	2	51182
+54.495	0.0	video on	4	54495
+54.495	0.0	video on	4	54495
+56.504	0.0	video off	3	56504
+56.504	0.0	video off	3	56504
+57.054	0.0	resp	2	57054
+57.054	0.0	resp	2	57054
+57.495	0.0	video on	4	57495
+57.495	0.0	video on	4	57495
+59.505	0.0	video off	3	59505
+59.505	0.0	video off	3	59505
+60.494	0.0	video on	4	60494
+60.494	0.0	video on	4	60494
+62.505	0.0	video off	3	62505
+62.505	0.0	video off	3	62505
+63.494	0.0	video on	4	63494
+63.494	0.0	video on	4	63494
+65.496	0.0	video off	3	65496
+65.496	0.0	video off	3	65496

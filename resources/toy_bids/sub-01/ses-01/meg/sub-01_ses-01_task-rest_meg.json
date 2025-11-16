@@ -1,0 +1,26 @@
+{
+    "TaskName": "rest",
+    "Manufacturer": "Elekta",
+    "PowerLineFrequency": 50.0,
+    "SamplingFrequency": 1200.0,
+    "SoftwareFilters": {
+        "SpatialCompensation": {
+            "GradientOrder": 3
+        }
+    },
+    "RecordingDuration": 66.0,
+    "RecordingType": "continuous",
+    "DewarPosition": "n/a",
+    "DigitizedLandmarks": true,
+    "DigitizedHeadPoints": false,
+    "MEGChannelCount": 273,
+    "MEGREFChannelCount": 28,
+    "ContinuousHeadLocalization": true,
+    "HeadCoilFrequency": [],
+    "EEGChannelCount": 0,
+    "EOGChannelCount": 0,
+    "ECGChannelCount": 0,
+    "EMGChannelCount": 0,
+    "MiscChannelCount": 108,
+    "TriggerChannelCount": 0
+}
