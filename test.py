@@ -1,25 +1,26 @@
 # %%
 from __future__ import annotations
 
-from mne_bids import read_raw_bids
+from mne_bids import BIDSPath
+from src.prep import PrepPipeline
+#%%
+def get_test_bids() -> BIDSPath:
+    ROOT = 'resources/toy_bids'
+    test_bids = BIDSPath(
+        subject='01',
+        session='01',
+        datatype='meg',
+        task='rest',
+        root=ROOT,
+    )
+    test_bids_eeg = test_bids.copy().update(datatype='eeg')
+    return {'meg': test_bids, 'eeg': test_bids_eeg}
 
-from src import DataConfig
-from src.prep.bad_chs import BadChsRunner
-from src.prep.line_noise import LineNoiseRunner
+meg_bdis = get_test_bids()['meg']
+eeg_bdis = get_test_bids()['eeg']
+meg_pipe = PrepPipeline(bids=meg_bdis)
+eeg_pipe = PrepPipeline(bids=eeg_bdis)
 # %%
-config = DataConfig()
-test_meg = read_raw_bids(config.source['01']['meg'][0])
-test_eeg = read_raw_bids(config.source['01']['eeg'][0])
-
-
-def make_test(raw):
-    raw.crop(60)
-    raw.resample(250)
-    return raw
-
-
-toy_meg = make_test(test_meg)
-toy_eeg = make_test(test_eeg)
-# %%
-lr = LineNoiseRunner(toy_meg)
+meg_pipe.run(save=False)
+eeg_pipe.run(save=False)
 # %%

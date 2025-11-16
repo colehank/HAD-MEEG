@@ -10,9 +10,9 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import font_manager as fm
 
-from src import MEEGConfig
+from src import DataConfig
 
-config = MEEGConfig()
+config = DataConfig()
 ROOT = config.bids_root
 DERI_EV_DIR = op.join(config.derivatives_root, 'detailed_events')
 
@@ -32,8 +32,6 @@ colors = [cmap_(i / (10 - 1)) for i in range(10)]
 color_meg = colors[2]
 color_eeg = colors[-3]
 # %%
-
-
 def get_files(root_dir: str) -> dict[str, str]:
     """Get a dictionary mapping subject IDs to file paths in the specified directory.
 
@@ -79,7 +77,7 @@ def extract_sub_accuracy(file_path: str) -> list[dict[str, object]]:
 
         for run in runs:
             run_data = sess_data[sess_data['run'] == run]
-            correct_responses = run_data[run_data['resp_is_right'] == True]
+            correct_responses = run_data[run_data['resp_is_right']]
 
             if len(run_data) > 0:
                 accuracy = len(correct_responses) / len(run_data)

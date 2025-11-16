@@ -1,1 +1,0 @@
-eeglabio=0.1.2 # not imported but MNE-BIDS depends on it for EEG .set files
