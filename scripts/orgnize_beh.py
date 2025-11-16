@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import loadmat
 from tqdm.auto import tqdm
+
 # %%
 data_root = '../../HAD-MEEG_data'
 res_dir = '../../HAD-MEEG_results'
@@ -30,13 +31,27 @@ eeg_subs.remove('10')  # sub10 has no enough behavioural data
 
 meg_bh_fps = {
     sub: [
-        op.join(bh_meg_dir, f'sub{sub}', 'sess01', f'sub{sub}_sess01_run{run}.mat') for run in runs
-    ] for sub in meg_subs
+        op.join(
+            bh_meg_dir,
+            f'sub{sub}',
+            'sess01',
+            f'sub{sub}_sess01_run{run}.mat',
+        )
+        for run in runs
+    ]
+    for sub in meg_subs
 }
 eeg_bh_fps = {
     sub: [
-        op.join(bh_eeg_dir, f'sub{sub}', 'sess01', f'sub{sub}_sess01_run{run}.mat') for run in runs
-    ] for sub in eeg_subs
+        op.join(
+            bh_eeg_dir,
+            f'sub{sub}',
+            'sess01',
+            f'sub{sub}_sess01_run{run}.mat',
+        )
+        for run in runs
+    ]
+    for sub in eeg_subs
 }
 # %%
 
@@ -51,8 +66,10 @@ def compute_beh(p_mat):
     class_name = data['runClass']
     truth_label = [
         class_info['sports_label'][
-            class_info['className'] == name[0][0]
-        ].iloc[0] for name in class_name
+            class_info['className']
+            == name[0][0]
+        ].iloc[0]
+        for name in class_name
     ]
     resp_mat = data['trial']
     # nTrial * 7 array: [onset, class, dur, key, RT, realTimePresent, realTimeFinish]
@@ -69,39 +86,34 @@ def compute_beh(p_mat):
 
 
 def generate_meta_data(p_mat):
-
     data = loadmat(p_mat)
     resp_key = data['trial'][:, 3]
     class_name = [i[0] for i in data['runClass'].flatten().tolist()]
     super_class_name = [
-        class_info[
-            class_info['className'] == name
-        ]['superClassName'].iloc[0] for name in class_name
+        class_info[class_info['className'] == name]['superClassName'].iloc[0]
+        for name in class_name
     ]
     stim_is_sports = [
-        class_info[
-            class_info['className'] == name
-        ]['sports_label'].iloc[0] for name in class_name
+        class_info[class_info['className'] == name]['sports_label'].iloc[0]
+        for name in class_name
     ]
     stim_is_sports = [True if i == 1 else False for i in stim_is_sports]
     resp_is_sports = [True if i == 1 else False for i in resp_key]
     resp_is_right = [
-        stim == resp for stim, resp in zip(stim_is_sports, resp_is_sports)
+        stim == resp for stim,
+        resp in zip(stim_is_sports, resp_is_sports)
     ]
     videos = data['runStim']
     videos_idx = [
-        re.search(r'id_(.*?)_start', str(i)).group(1)
-        for i in videos.flatten().tolist()
+        re.search(r'id_(.*?)_start', str(i)).group(1) for i in videos.flatten().tolist()
     ]
     video_class_id = [
-        class_info[
-            class_info['className'] == name
-        ]['classID'].iloc[0] for name in class_name
+        class_info[class_info['className'] == name]['classID'].iloc[0]
+        for name in class_name
     ]
     video_super_class_id = [
-        class_info[
-            class_info['className'] == name
-        ]['superClassID'].iloc[0] for name in class_name
+        class_info[class_info['className'] == name]['superClassID'].iloc[0]
+        for name in class_name
     ]
 
     RT = data['trial'][:, 4]
@@ -132,13 +144,13 @@ def compute_detailed_beh():
     for sub in tqdm(meg_subs, desc='Computing MEG detailed behaviour'):
         for run in runs:
             meg_res.append({'sub': sub, 'run': run})
-            p_mat = meg_bh_fps[sub][int(run)-1]
+            p_mat = meg_bh_fps[sub][int(run) - 1]
             meg_res[-1].update(compute_beh(p_mat))
 
     for sub in tqdm(eeg_subs, desc='Computing EEG detailed behaviour'):
         for run in runs:
             eeg_res.append({'sub': sub, 'run': run})
-            p_mat = eeg_bh_fps[sub][int(run)-1]
+            p_mat = eeg_bh_fps[sub][int(run) - 1]
             eeg_res[-1].update(compute_beh(p_mat))
 
     meg_res = pd.DataFrame(meg_res)
@@ -156,7 +168,7 @@ def generate_detailed_events():
         for run in runs:
             if sub in meg_bh_fps:
                 try:
-                    p_mat_meg = meg_bh_fps[sub][int(run)-1]
+                    p_mat_meg = meg_bh_fps[sub][int(run) - 1]
                     meta_data_meg = generate_meta_data(p_mat_meg)
                     sub_meta.append(meta_data_meg)
                 except IndexError:
@@ -164,7 +176,7 @@ def generate_detailed_events():
 
             if sub in eeg_bh_fps:
                 try:
-                    p_mat_eeg = eeg_bh_fps[sub][int(run)-1]
+                    p_mat_eeg = eeg_bh_fps[sub][int(run) - 1]
                     meta_data_eeg = generate_meta_data(p_mat_eeg)
                     sub_meta.append(meta_data_eeg)
                 except IndexError:
@@ -184,15 +196,19 @@ if __name__ == '__main__':
     meg_res, eeg_res = compute_detailed_beh()
     meg_res.to_csv(
         op.join(
-            res_dir, 'behaviour',
+            res_dir,
+            'behaviour',
             'meg_behaviour.csv',
-        ), index=False,
+        ),
+        index=False,
     )
     eeg_res.to_csv(
         op.join(
-            res_dir, 'behaviour',
+            res_dir,
+            'behaviour',
             'eeg_behaviour.csv',
-        ), index=False,
+        ),
+        index=False,
     )
     generate_detailed_events()
 

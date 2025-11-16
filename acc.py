@@ -115,9 +115,7 @@ def plot_accuracy_violin_box(
     color_meg: str = '#1f77b4',
     color_eeg: str = '#ff7f0e',
 ) -> plt.Figure:
-    """Plot subject accuracy (MEG/EEG) as a split violin plot + boxplot.
-
-    """
+    """Plot subject accuracy (MEG/EEG) as a split violin plot + boxplot."""
     df_box = df[['sub', 'acc']].copy()
 
     fig, ax = plt.subplots(figsize=(12, 3), dpi=300)
@@ -142,8 +140,10 @@ def plot_accuracy_violin_box(
         y='acc',
         showcaps=True,
         boxprops={
-            'facecolor': 'dimgray', 'edgecolor': 'dimgray',
-            'alpha': 0.6, 'linewidth': .8,
+            'facecolor': 'dimgray',
+            'edgecolor': 'dimgray',
+            'alpha': 0.6,
+            'linewidth': 0.8,
         },
         showfliers=False,
         whiskerprops={'linewidth': 1.0, 'color': 'dimgray'},
@@ -163,7 +163,9 @@ def plot_accuracy_violin_box(
     ax.set_yticks([0.6, 0.8, 1.0])
 
     ax.legend(
-        loc='lower right', frameon=False, fontsize=font_size - 4,
+        loc='lower right',
+        frameon=False,
+        fontsize=font_size - 4,
         bbox_to_anchor=(1.02, 0),
         handlelength=1,
     )
@@ -195,10 +197,14 @@ if __name__ == '__main__':
     acc.to_csv(op.join(SAVE_DIR, 'accuracy.csv'), index=False)
     fig.savefig(
         op.join(FIG_DIR, 'accuracy.svg'),
-        dpi=300, bbox_inches='tight', transparent=True,
+        dpi=300,
+        bbox_inches='tight',
+        transparent=True,
     )
     fig.savefig(
         op.join(FIG_DIR, 'accuracy.png'),
-        dpi=300, bbox_inches='tight', transparent=True,
+        dpi=300,
+        bbox_inches='tight',
+        transparent=True,
     )
 # %%

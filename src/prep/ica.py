@@ -8,9 +8,7 @@ import math
 import os
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional
 from typing import TypedDict
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -53,9 +51,10 @@ class ICARunner(BaseLoader):
         if highpass is None:
             highpass = raw.info['highpass']
 
-        assert highpass < lowpass <= sfreq / 2, \
-            f'lowpass {lowpass} must be less than Nyquist {int(sfreq) / 2} ' \
+        assert highpass < lowpass <= sfreq / 2, (
+            f'lowpass {lowpass} must be less than Nyquist {int(sfreq) / 2} '
             f'and higher than highpass {highpass}.'
+        )
 
         if sfreq != 250.0:
             logger.warning(
@@ -123,9 +122,11 @@ class ICARunner(BaseLoader):
         # write label to ICA
         ic_labels_dict = {
             label: [
-                int(idx) for idx, val in enumerate(
+                int(idx)
+                for idx, val in enumerate(
                     ic_labels['labels'],
-                ) if val == label
+                )
+                if val == label
             ]
             for label in set(ic_labels['labels'])
         }
@@ -133,9 +134,11 @@ class ICARunner(BaseLoader):
 
         # write exclude to ICA
         exclude = [
-            int(idx) for idx, val in enumerate(
+            int(idx)
+            for idx, val in enumerate(
                 ic_labels['labels'],
-            ) if val not in good_labels
+            )
+            if val not in good_labels
         ]
         ica.exclude = exclude
         return ica, ic_labels
@@ -161,8 +164,9 @@ class ICARunner(BaseLoader):
         }
         ica.labels_ = ic_labels_dict
         exclude = [
-            int(idx) for idx, val in enumerate(ic_labels) if val not in
-            ['brain', 'other', 'brain/other']
+            int(idx)
+            for idx, val in enumerate(ic_labels)
+            if val not in ['brain', 'other', 'brain/other']
         ]
         ica.exclude = exclude
 
@@ -182,10 +186,9 @@ class ICARunner(BaseLoader):
         """plot ICA components with labels"""
         logger.info('Plotting ICA components with labels...')
         if sphere is None:
-            sphere = .2 if self.dtype == 'meg' else .15
+            sphere = 0.2 if self.dtype == 'meg' else 0.15
             logger.info(
-                f'sphere is not provided, '
-                f'set to {sphere} for {self.dtype} data.',
+                f'sphere is not provided, set to {sphere} for {self.dtype} data.',
             )
         labels = ic_labels['labels']
         y_pred = ic_labels['y_pred_proba']
@@ -213,12 +216,20 @@ class ICARunner(BaseLoader):
             label = labels[i]
             pred = y_pred[i]
             pred = f'{pred:.2f}'
-            color = 'red' if label not in [
-                'brain', 'other', 'brain/other',
-            ] else 'black'
+            color = (
+                'red'
+                if label
+                not in [
+                    'brain',
+                    'other',
+                    'brain/other',
+                ]
+                else 'black'
+            )
             axes[i].set_title(
                 f'{i}\n{label}({pred})',
-                color=color, fontsize=20,
+                color=color,
+                fontsize=20,
             )
 
         fig.subplots_adjust(hspace=0.5)
@@ -258,9 +269,16 @@ class ICARunner(BaseLoader):
         label = labels['labels'][ic_idx]
         ypred = labels['y_pred_proba'][ic_idx]
         pred = f'{ypred:.2f}'
-        color = 'red' if label not in [
-            'brain', 'other', 'brain/other',
-        ] else 'black'
+        color = (
+            'red'
+            if label
+            not in [
+                'brain',
+                'other',
+                'brain/other',
+            ]
+            else 'black'
+        )
         axes[0].set_title(f'{ic_idx}\n{label}({pred})', color=color)
         plt.close(fig)
         return fig
@@ -279,7 +297,9 @@ class ICARunner(BaseLoader):
         logger.info(f'Saving ICA derivative files to {fname} ...')
         if save_keywargs is None:
             save_keywargs = dict(
-                dpi=300, bbox_inches='tight', transparent=True,
+                dpi=300,
+                bbox_inches='tight',
+                transparent=True,
             )
         plt.close('all')
         fig_all = self.plot_comps_with_labels(ica, raw, labels)
@@ -302,9 +322,16 @@ class ICARunner(BaseLoader):
 
         if ica.labels_:
             for label, comps in ica.labels_.items():
-                this_status = 'good' if label in [
-                    'brain', 'other', 'brain/other',
-                ] else 'bad'
+                this_status = (
+                    'good'
+                    if label
+                    in [
+                        'brain',
+                        'other',
+                        'brain/other',
+                    ]
+                    else 'bad'
+                )
                 for comp in comps:
                     status[comp] = this_status
                     ic_type[comp] = label
@@ -331,8 +358,10 @@ class ICARunner(BaseLoader):
         }
 
         tsv_data.to_csv(
-            f'{fname}.tsv', sep='\t',
-            index=False, encoding='utf-8',
+            f'{fname}.tsv',
+            sep='\t',
+            index=False,
+            encoding='utf-8',
         )
         with open(f'{fname}.json', 'w', encoding='utf-8') as jf:
             json.dump(component_json, jf, indent=4)
@@ -343,7 +372,7 @@ class ICARunner(BaseLoader):
         ica: ICA,
         raw: BaseRaw,
         exclude: list[int] | None = None,
-        highpass: float | None = .1,
+        highpass: float | None = 0.1,
         lowpass: float | None = 100,
         sfreq: float | None = 250,
     ) -> BaseRaw:
@@ -375,18 +404,15 @@ class ICARunner(BaseLoader):
         lowpass: float | None = 100.0,
         sfreq: float | None = 250,
         # raw params for ica regression
-        highpass_regress: float | None = .1,
+        highpass_regress: float | None = 0.1,
         lowpass_regress: float | None = 100.0,
         sfreq_regress: float | None = 250,
-
         # ICA params
         ncomp: int | float | None = None,
-
         # Pipline control
         manual: bool = False,
         ic_labels: list[str] | None = None,
         ica: ICA | None = None,
-
         # derivative saving params
         save_deriv: bool = True,
         fname: str = 'ica_output',
@@ -426,11 +452,12 @@ class ICARunner(BaseLoader):
             base name for saving ICA derivative files, by default 'ica_output'
         """
         logger.info(
-            f"Running ICA { 'manual' if manual else 'auto' } pipeline...",
+            f"Running ICA {'manual' if manual else 'auto'} pipeline...",
         )
         raw = self.raw.copy()
         if any(
-            val != val_regress for val, val_regress in zip(
+            val != val_regress
+            for val, val_regress in zip(
                 (lowpass, sfreq),
                 (lowpass_regress, sfreq_regress),
             )
@@ -444,17 +471,18 @@ class ICARunner(BaseLoader):
                 in_raw = self._prep_raw(raw, highpass, lowpass, sfreq)
                 ica = self._feature_extra(in_raw, ncomp)
                 ica, ic_labels = self.label_ica_components_auto(
-                    in_raw, ica,
+                    in_raw,
+                    ica,
                 )
                 label_method = 'MEGNet' if self.dtype == 'meg' else 'ICLabel'
             case True:
                 if ica is None or ic_labels is None:
                     raise ValueError(
-                        'manual labeling requires both '
-                        'ica and ic_labels provided.',
+                        'manual labeling requires both ica and ic_labels provided.',
                     )
                 ica, ic_labels = self.label_ica_components_manual(
-                    ica, ic_labels,
+                    ica,
+                    ic_labels,
                 )
                 label_method = 'manual'
 

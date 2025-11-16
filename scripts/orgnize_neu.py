@@ -21,13 +21,23 @@ from tqdm_joblib import tqdm_joblib
 BIDS_ROOT_RAW = '../../BIN/action/HAD-MEEG-BIDS'
 BIDS_ROOT_DST = '../../HAD-MEEG_upload'
 DESIGN_EVENT_ID = {
-    'begin': 1, 'video on': 2,
-    'video off': 3, 'resp': 4, 'end': 5,
+    'begin': 1,
+    'video on': 2,
+    'video off': 3,
+    'resp': 4,
+    'end': 5,
 }
 EEG_RENAME_MAP = {
-    'FP1': 'Fp1', 'FP2': 'Fp2', 'FPZ': 'Fpz',
-    'FZ': 'Fz', 'FCZ': 'FCz', 'CZ': 'Cz',
-    'CPZ': 'CPz', 'PZ': 'Pz', 'POZ': 'POz', 'OZ': 'Oz',
+    'FP1': 'Fp1',
+    'FP2': 'Fp2',
+    'FPZ': 'Fpz',
+    'FZ': 'Fz',
+    'FCZ': 'FCz',
+    'CZ': 'Cz',
+    'CPZ': 'CPz',
+    'PZ': 'Pz',
+    'POZ': 'POz',
+    'OZ': 'Oz',
 }
 
 
@@ -61,13 +71,19 @@ def gen_meta_info(return_bids=True):
             for run in runs:
                 run = f'{run:0>2d}'
                 raw_fp = op.join(
-                    BIDS_ROOT_RAW, f'sub-{sub}',
-                    f'ses-{ses.lower()}', ses.lower(),
+                    BIDS_ROOT_RAW,
+                    f'sub-{sub}',
+                    f'ses-{ses.lower()}',
+                    ses.lower(),
                     f'sub-{sub}_ses-{ses.lower()}_task-action_run-{run}_{ses.lower()}.{extention}',
                 )
-                raw_fp = get_bids_path_from_fname(
-                    raw_fp,
-                ) if return_bids else raw_fp
+                raw_fp = (
+                    get_bids_path_from_fname(
+                        raw_fp,
+                    )
+                    if return_bids
+                    else raw_fp
+                )
                 meta_info[sub][ses][run] = raw_fp
     return meta_info
 
@@ -76,7 +92,8 @@ def correct_event(raw):
     corrected_raw, correcting_info = tri_run_in_one(raw)
     to_des = (
         'Annotation corrected under experimental design.'
-        if correcting_info != 'sucess' else None
+        if correcting_info != 'sucess'
+        else None
     )
     corrected_raw.info['description'] = to_des
     return corrected_raw
@@ -99,11 +116,15 @@ def fill_missing_date(raw, sub):
     if raw.info.get('meas_date') is not None:
         return raw
 
-    curry.curry.FILE_EXTENSIONS['Curry 8'].update({
-        'info': '.cdt.dpo',
-        'labels': '.cdt.dpo',
-    })
-    orig_root = '/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/EEG/eeg_raw_idAligned'
+    curry.curry.FILE_EXTENSIONS['Curry 8'].update(
+        {
+            'info': '.cdt.dpo',
+            'labels': '.cdt.dpo',
+        },
+    )
+    orig_root = (
+        '/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/EEG/eeg_raw_idAligned'
+    )
     orig_fp = f'{orig_root}/sub{sub}.cdt'
     ori_raw = mne.io.read_raw_curry(orig_fp)
     mes_date = ori_raw.info['meas_date']
@@ -134,7 +155,8 @@ def apply_raw_side(bids):
     if bids.datatype == 'eeg':
         corrected_raw = fill_missing_date(corrected_raw, bids.subject)
     corrected_raw.info['subject_info'] = get_sub_info(
-        bids.subject, corrected_raw,
+        bids.subject,
+        corrected_raw,
     )
     corrected_raw.info['experimenter'] = 'ghz'
     corrected_raw.info['line_freq'] = 50.0

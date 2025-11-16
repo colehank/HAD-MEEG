@@ -4,6 +4,7 @@ from typing import Literal
 
 from loguru import logger
 from mne.io import BaseRaw
+
 DType = Literal['eeg', 'meg']
 
 
@@ -41,8 +42,15 @@ class BaseLoader:
         picks: list | None = None,
     ) -> BaseRaw:
         if picks is None:
-            picks = [
-                'mag', 'grad', 'planar1', 'planar2',
-            ] if self.dtype == 'meg' else ['eeg']
+            picks = (
+                [
+                    'mag',
+                    'grad',
+                    'planar1',
+                    'planar2',
+                ]
+                if self.dtype == 'meg'
+                else ['eeg']
+            )
             raw.pick(picks)
         return raw

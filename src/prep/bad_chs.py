@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 from loguru import logger
@@ -28,7 +27,7 @@ class BadChsRunner(BaseLoader):
 
     def _handle_meg(
         self,
-        origin=(0., 0., 0.04),
+        origin=(0.0, 0.0, 0.04),
         find_in: list | None = None,
     ) -> BaseRaw:
         raw = self.raw.copy()  # for return
@@ -84,11 +83,10 @@ class BadChsRunner(BaseLoader):
         find_in: list | None = None,
         fix: bool = True,
         reset_bads: bool = True,
-        origin=(0., 0., 0.04),
+        origin=(0.0, 0.0, 0.04),
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
-
         match self.dtype:
             case 'meg':
                 clean_raw = self._handle_meg(origin, find_in)
@@ -115,15 +113,20 @@ class BadChsRunner(BaseLoader):
             status = ['good'] * len(chs)
             status_desc = ['fixed' if ch in self.bads else 'n/a' for ch in chs]
 
-            df = pd.DataFrame({
-                'name': chs,
-                'type': [self.dtype] * len(chs),
-                'status': status,
-                'status_description': status_desc,
-            })
+            df = pd.DataFrame(
+                {
+                    'name': chs,
+                    'type': [self.dtype] * len(chs),
+                    'status': status,
+                    'status_description': status_desc,
+                },
+            )
             df.to_csv(
-                fname, sep='\t', index=False,
-                encoding='utf-8', na_rep='n/a',
+                fname,
+                sep='\t',
+                index=False,
+                encoding='utf-8',
+                na_rep='n/a',
             )
             logger.success(f'Saved bad channel annotated raw to {fname}')
 

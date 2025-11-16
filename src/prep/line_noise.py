@@ -4,7 +4,6 @@ from __future__ import annotations
 import contextlib
 import io
 from pathlib import Path
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import mne
@@ -132,7 +131,9 @@ class LineNoiseRunner(BaseLoader):
                 )
             fname = Path(f'{fname}_desc-psdplot_{self.dtype}.png')
             fig = self.plot_psd_comparison(
-                self.raw, clean, title='Line Noise Removal Comparison',
+                self.raw,
+                clean,
+                title='Line Noise Removal Comparison',
             )
             fig.savefig(fname)
             logger.success(f'Saved PSD comparison plot to {fname}')

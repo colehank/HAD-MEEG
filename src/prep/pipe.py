@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
-from typing import Union
 
 from loguru import logger
 from mne.io import BaseRaw
@@ -14,6 +12,7 @@ from mne_bids import read_raw_bids
 from .bad_chs import BadChsRunner
 from .ica import ICARunner
 from .line_noise import LineNoiseRunner
+
 RANDOM_SEED = 42
 # %%
 
@@ -33,9 +32,13 @@ class PrepPipeline:
         else:
             self.prep_root = Path(deri_root) / 'preprocessing'
         self.basename = bids.basename
-        self.save_fname = self.prep_root / \
-            f'sub-{bids.subject}' / f'ses-{bids.session}' / \
-            self.dtype / f'{self.basename}'
+        self.save_fname = (
+            self.prep_root
+            / f'sub-{bids.subject}'
+            / f'ses-{bids.session}'
+            / self.dtype
+            / f'{self.basename}'
+        )
         logger.info(f'Derivatives will be saved to {self.save_fname}')
 
     def load(self) -> None:

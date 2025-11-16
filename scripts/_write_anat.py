@@ -1,9 +1,7 @@
 # %%
 from __future__ import annotations
 
-import json
 import shutil
-from datetime import datetime
 
 import pandas as pd
 from mne_bids import BIDSPath
@@ -13,6 +11,7 @@ from mne_bids import write_anat
 from tqdm.auto import tqdm
 
 from src.config import DataConfig
+
 fMRI_ROOT = '/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/data_upload/HAD'
 # %%
 config = DataConfig()
@@ -21,9 +20,12 @@ MEEG_ROOT = config.bids_root
 # %%
 anat_imgs = {
     sub: find_matching_paths(
-        fMRI_ROOT, subjects=sub,
-        extensions='.nii.gz', datatypes='anat',
-    ) for sub in fmri_subs
+        fMRI_ROOT,
+        subjects=sub,
+        extensions='.nii.gz',
+        datatypes='anat',
+    )
+    for sub in fmri_subs
 }
 
 for sub in tqdm(anat_imgs):
@@ -37,9 +39,13 @@ for sub in tqdm(anat_imgs):
         extension='.nii.gz',
         datatype='anat',
     )
-    sidecar_json = src_bids.copy().update(
-        extension='.json',
-    ).fpath
+    sidecar_json = (
+        src_bids.copy()
+        .update(
+            extension='.json',
+        )
+        .fpath
+    )
     dst_sidecar_json = f'{MEEG_ROOT}/sub-{sub}/ses-mri/anat/sub-{sub}_ses-mri_T1w.json'
     shutil.copy(sidecar_json, dst_sidecar_json)
 
@@ -63,8 +69,8 @@ for sub in tqdm(anat_imgs):
 
 # %%
 sub_evs = {
-    sub: config.derivatives_root /
-    f'detailed_events/sub-{sub}_events.csv' for sub in config.subjects
+    sub: config.derivatives_root / f'detailed_events/sub-{sub}_events.csv'
+    for sub in config.subjects
 }
 all_evs = pd.concat([pd.read_csv(fp) for fp in sub_evs.values()], axis=0)
 # %%
@@ -75,7 +81,6 @@ for clss in uni_cls:
     df = all_evs[all_evs['class_id'] == clss]
     uni_vid = df['video_id'].unique().tolist()
     print(
-        f'Class {clss} has {len(df)} events.'
-        f'  covering {len(uni_vid)} videos.',
+        f'Class {clss} has {len(df)} events.  covering {len(uni_vid)} videos.',
     )
 # %%
