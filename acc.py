@@ -32,6 +32,8 @@ colors = [cmap_(i / (10 - 1)) for i in range(10)]
 color_meg = colors[2]
 color_eeg = colors[-3]
 # %%
+
+
 def get_files(root_dir: str) -> dict[str, str]:
     """Get a dictionary mapping subject IDs to file paths in the specified directory.
 

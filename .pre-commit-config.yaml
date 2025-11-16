@@ -37,3 +37,5 @@ repos:
 #     hooks:
 #     -   id: mypy
 #         args: [--ignore-missing-imports]
+default_language_version:
+  python: python3.11
