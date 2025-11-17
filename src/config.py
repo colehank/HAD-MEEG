@@ -118,7 +118,7 @@ class DataConfig(BaseSettings):
                         },
                     )
         return pd.DataFrame(rows)
-    
+
     @cached_property
     def source_bids_list(self) -> list[BIDSPath]:
         """Create a list of all source BIDSPaths."""

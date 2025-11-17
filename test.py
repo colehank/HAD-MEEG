@@ -1,15 +1,17 @@
 # %%
 from __future__ import annotations
 
-from src.config import DataConfig
-# from src.prep import PrepPipeline
-from src.prep import BatchPrepPipeline
+import sys
 
 from loguru import logger
-import sys
+
+from src.config import DataConfig
+from src.prep import BatchPrepPipeline
+# from src.prep import PrepPipeline
+
 logger.remove()
-logger.add(sys.stderr, level="WARNING")
-logger.add("batch.log", level="TRACE")
+logger.add(sys.stderr, level='WARNING')
+logger.add('batch.log', level='TRACE')
 # sub = '01'
 # all_bids = cfg.source[sub]
 

@@ -8,7 +8,7 @@ import math
 import os
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TypedDict, Optional
+from typing import TypedDict
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ from ._bids_loader import BaseLoader
 class ICLabels(TypedDict):
     labels: Sequence[str]  # list[str], length n_components
     y_pred_proba: np.ndarray  # shape (n_components,)
-    methods: Optional[Sequence[str]]  # list[str], length n_components
+    methods: Sequence[str] | None  # list[str], length n_components
 
 
 class ICARunner(BaseLoader):
@@ -155,7 +155,10 @@ class ICARunner(BaseLoader):
         ic_labels_dict = {
             label: [
                 int(idx)
-                for idx, val in enumerate(manual_labels) if val == label
+                for idx, val in enumerate(
+                    manual_labels,
+                )
+                if val == label
             ]
             for label in set(manual_labels)
         }
@@ -182,12 +185,13 @@ class ICARunner(BaseLoader):
                 merged_labels.append(auto_label)
                 merged_pred.append(auto_prob)
                 merged_methods.append(
-                    'MEGNet' if self.dtype == 'meg' else 'ICLabel')
+                    'MEGNet' if self.dtype == 'meg' else 'ICLabel',
+                )
             else:
                 merged_labels.append(manual_label)
                 merged_pred.append(1.0)
                 merged_methods.append('Manual')
-        
+
         match_auto_labels = {
             'labels': merged_labels,
             'y_pred_proba': np.array(merged_pred),
@@ -362,17 +366,17 @@ class ICARunner(BaseLoader):
                 annotate_method=labels['methods'],
                 annotate_author=[author] * ica.n_components_,
                 ic_type=ic_type,
-                pred_prob = labels['y_pred_proba'].tolist(),
+                pred_prob=labels['y_pred_proba'].tolist(),
             ),
         )
         component_json = {
             'annotate_method': 'Method used for annotating components (e.g. Manual, ICLabel)',
             'annotate_author': 'The name of the person who ran the annotation',
             'ic_type': "The type of annotation must be one of ['brain', "
-                "'muscle artifact', 'eye blink', 'heart beat', 'line noise', "
-                "'channel noise', 'other']",
+            "'muscle artifact', 'eye blink', 'heart beat', 'line noise', "
+            "'channel noise', 'other']",
             'pred_prob': 'The predicted probability of the component belonging to the annotated type,'
-                "if annotated manually, this value is 1.0",
+            'if annotated manually, this value is 1.0',
         }
 
         tsv_data.to_csv(
@@ -385,7 +389,6 @@ class ICARunner(BaseLoader):
             json.dump(component_json, jf, indent=4)
         ica.save(f'{fname}.fif', overwrite=True)
 
-    
     def load_lc_labels(
         self,
         fname: str,
@@ -399,7 +402,6 @@ class ICARunner(BaseLoader):
             y_pred_proba=pred_prob,
             methods=methods,
         )
-        
 
     def regress_artifacts(
         self,
@@ -519,21 +521,26 @@ class ICARunner(BaseLoader):
                     raise ValueError(
                         'manual labeling requires both ica and manual_labels provided.',
                     )
-                
+
                 if auto_labels is None:
                     try:
-                        auto_labels_path = str(fname) + f'_desc-ica_{self.dtype}.tsv'
+                        auto_labels_path = (
+                            str(
+                                fname,
+                            )
+                            + f'_desc-ica_{self.dtype}.tsv'
+                        )
                         auto_labels = self.load_lc_labels(auto_labels_path)
                     except Exception as e:
                         raise ValueError(
                             'Please provide auto_labels path or ICLabels object for manual labeling.',
-                            e
+                            e,
                         ) from e
 
                 elif isinstance(auto_labels, str):
                     auto_labels_path = auto_labels
                     auto_labels = self.load_lc_labels(auto_labels_path)
-                
+
                 ica, ic_labels = self.label_ica_components_manual(
                     ica,
                     auto_labels=auto_labels,

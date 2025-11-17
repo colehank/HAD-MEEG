@@ -87,7 +87,7 @@ class BadChsRunner(BaseLoader):
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
-        logger.info("bad channels detecting & fixing")
+        logger.info('bad channels detecting & fixing')
         match self.dtype:
             case 'meg':
                 clean_raw = self._handle_meg(origin, find_in)

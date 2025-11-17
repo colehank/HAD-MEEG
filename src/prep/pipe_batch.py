@@ -1,8 +1,12 @@
-from .pipe_single import PrepPipeline
+from __future__ import annotations
+
 from pathlib import Path
+
 from mne_bids import BIDSPath
-from typing import Optional
 from tqdm.auto import tqdm
+
+from .pipe_single import PrepPipeline
+
 
 class BatchPrepPipeline:
     def __init__(
@@ -18,13 +22,10 @@ class BatchPrepPipeline:
     def run(
         self,
         manual_ica_checked: bool = False,
-        manual_labels: Optional[list[str]] = None,
-        regress:  bool = False,
+        manual_labels: list[str] | None = None,
+        regress: bool = False,
     ) -> None:
-        for bids in tqdm(
-            self.bids_list, 
-            desc='Processing BIDS datasets'
-            ):
+        for bids in tqdm(self.bids_list, desc='Processing BIDS datasets'):
             pipe = PrepPipeline(
                 bids=bids,
                 deri_root=self.deri_root,

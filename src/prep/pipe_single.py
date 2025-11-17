@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from loguru import logger
 import mne
+from loguru import logger
 from mne.io import BaseRaw
+from mne.preprocessing import ICA
 from mne_bids import BIDSPath
 from mne_bids import read_raw_bids
-from typing import Optional
+
 from .bad_chs import BadChsRunner
 from .ica import ICARunner
 from .line_noise import LineNoiseRunner
-from mne.preprocessing import ICA
 
 RANDOM_SEED = 42
+
+
 # %%
 class PrepPipeline:
     def __init__(
@@ -41,15 +43,19 @@ class PrepPipeline:
             / self.dtype
             / f'{self.basename}'
         )
-        logger.trace(f'{self.dtype} Data derivatives will be saved to {self.save_fname}')
-        
+        logger.trace(
+            f'{self.dtype} Data derivatives will be saved to {self.save_fname}',
+        )
+
         if use_cuda:
             logger.trace('Using CUDA for computations where possible.')
             self.n_jobs = 'cuda'
             mne.cuda.init_cuda()
         else:
             self.n_jobs = n_jobs
-            logger.trace(f'Using {n_jobs} CPU cores for computations where possible.')
+            logger.trace(
+                f'Using {n_jobs} CPU cores for computations where possible.',
+            )
 
     def load(self) -> None:
         logger.info('Loading data...')
@@ -62,7 +68,7 @@ class PrepPipeline:
         lowpass: float,
         highpass: float,
         sfreq: float,
-        ) -> None:
+    ) -> None:
         if not hasattr(self, 'raw'):
             self.load()
         assert highpass < sfreq / 2, (
@@ -77,14 +83,13 @@ class PrepPipeline:
 
     def run(
         self,
-        preprep_params: Optional[dict] = None,
+        preprep_params: dict | None = None,
         save: bool = True,
         regress: bool = False,
         manual_ica_checked: bool = False,
-        manual_labels: Optional[list[str]] = None,
-        ica: Optional[ICA] = None,
-        ) -> Optional[BaseRaw]:
-        
+        manual_labels: list[str] | None = None,
+        ica: ICA | None = None,
+    ) -> BaseRaw | None:
         if regress and not manual_ica_checked:
             logger.error(
                 'Regressing artifacts without manual checking.'
@@ -99,13 +104,13 @@ class PrepPipeline:
         if preprep_params is None:
             logger.trace('Using default preprep parameters.')
             lowpass = 100.0
-            highpass = .1
+            highpass = 0.1
             sfreq = 250.0
         else:
             lowpass = preprep_params.get('lowpass', 100.0)
-            highpass = preprep_params.get('highpass', .1)
+            highpass = preprep_params.get('highpass', 0.1)
             sfreq = preprep_params.get('sfreq', 250.0)
-        
+
         self.preprep_raw(
             lowpass=lowpass,
             highpass=highpass,
@@ -126,6 +131,7 @@ class PrepPipeline:
                 if fn_ica.is_file() and fn_labels.is_file():
                     ica = mne.preprocessing.read_ica(fn_ica)
                     import pandas as pd
+
                     df = pd.read_csv(fn_labels, sep='\t')
                     manual_labels = df['ic_type'].values.tolist()
                     logger.trace(
@@ -133,8 +139,8 @@ class PrepPipeline:
                     )
                 else:
                     raise ValueError(
-                        "Cannot find ICA or manual labels from BIDS."
-                        "Please provide them directly.",
+                        'Cannot find ICA or manual labels from BIDS.'
+                        'Please provide them directly.',
                     )
 
         save_fname = self.save_fname
@@ -147,7 +153,7 @@ class PrepPipeline:
         runner = LineNoiseRunner(raw=self.raw)
         self.raw = runner.run(fname=save_fname)
         logger.success('Line noise removal completed.')
-        
+
         # 3. Denoise
         if self.dtype == 'eeg':
             logger.info('apply average reference to denosing')
@@ -168,14 +174,14 @@ class PrepPipeline:
         )
         logger.success(
             f"ICA ({'automatic' if not manual_ica_checked else 'manual'} label"
-            f"{' -> regression' if regress else ''}) completed."
-            )
+            f"{' -> regression' if regress else ''}) completed.",
+        )
 
         # (5). EEG only: set average reference again after ICA
         if self.dtype == 'eeg' and regress:
-            logger.info("re-referencing EEG after ICA.")
+            logger.info('re-referencing EEG after ICA.')
             self.raw.set_eeg_reference('average')
-            logger.success("re-reference EEG done.")
+            logger.success('re-reference EEG done.')
 
         if save:
             logger.info('Saving final clean BaseRaw.')
@@ -185,5 +191,5 @@ class PrepPipeline:
             self.raw.save(save_fname, overwrite=True)
             logger.trace(f'Final clean BaseRaw saved to {save_fname}')
             logger.success('Cleaned data saved')
-        
+
         logger.success('Preprocessed!')
