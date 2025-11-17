@@ -8,7 +8,7 @@ import math
 import os
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,6 +25,7 @@ from ._bids_loader import BaseLoader
 class ICLabels(TypedDict):
     labels: Sequence[str]  # list[str], length n_components
     y_pred_proba: np.ndarray  # shape (n_components,)
+    methods: Optional[Sequence[str]]  # list[str], length n_components
 
 
 class ICARunner(BaseLoader):
@@ -62,12 +63,6 @@ class ICARunner(BaseLoader):
                 f'{sfreq} Hz data may lead to suboptimal performance.',
             )
 
-        if highpass < 1:
-            logger.warning(
-                'freq lower than 1 Hz will influence artifact decomposition.'
-                'also, megnet and iclabel models are trained on data filtered above 1 Hz.',
-            )
-
         _raw = raw.copy()
         _raw.load_data()
         _raw = self._pick_chs(_raw)
@@ -82,7 +77,7 @@ class ICARunner(BaseLoader):
         method: str = 'infomax',
         fit_params: dict | None = None,
     ) -> ICA:
-        logger.info('Extracting ICA components...')
+        logger.trace('Extracting ICA components...')
         if n_comp is None:
             if self.dtype == 'eeg':
                 n_comp = 20
@@ -110,7 +105,7 @@ class ICARunner(BaseLoader):
         good_labels: list[str] | None = None,
     ) -> tuple[ICA, ICLabels]:
         """label ICA components using mne-icalabel"""
-        logger.info('Labeling ICA components automatically...')
+        logger.trace('Labeling ICA components automatically...')
         if method is None:
             method = 'iclabel' if self.dtype == 'eeg' else 'megnet'
         if good_labels is None:
@@ -118,6 +113,7 @@ class ICARunner(BaseLoader):
 
         # run auto label
         ic_labels = label_components(raw, ica, method=method)
+        ic_labels['methods'] = [method] * ica.n_components_
 
         # write label to ICA
         ic_labels_dict = {
@@ -146,33 +142,56 @@ class ICARunner(BaseLoader):
     def label_ica_components_manual(
         self,
         ica: ICA,
-        ic_labels: list[str],
+        auto_labels: ICLabels,
+        manual_labels: list[str],
     ) -> tuple[ICA, ICLabels]:
         """label ICA components manually"""
-        logger.info('Labeling ICA components manually...')
-        if len(ic_labels) != ica.n_components_:
+        logger.trace('Labeling ICA components manually...')
+        if len(manual_labels) != ica.n_components_ != len(auto_labels['labels']):
             raise ValueError(
-                f'Number of labels ({len(ic_labels)}) does not match '
+                f'Number of labels ({len(manual_labels)}) does not match '
                 f'number of ICA components ({ica.n_components_}).',
             )
         ic_labels_dict = {
             label: [
                 int(idx)
-                for idx, val in enumerate(ic_labels) if val == label
+                for idx, val in enumerate(manual_labels) if val == label
             ]
-            for label in set(ic_labels)
+            for label in set(manual_labels)
         }
         ica.labels_ = ic_labels_dict
         exclude = [
             int(idx)
-            for idx, val in enumerate(ic_labels)
+            for idx, val in enumerate(manual_labels)
             if val not in ['brain', 'other', 'brain/other']
         ]
+
         ica.exclude = exclude
 
+        auto_pred_proba = auto_labels['y_pred_proba']
+        save_pred_proba = auto_pred_proba.copy()
+        merged_labels = []
+        merged_pred = []
+        merged_methods = []
+        for manual_label, auto_label, auto_prob in zip(
+            manual_labels,
+            auto_labels['labels'],
+            save_pred_proba,
+        ):
+            if manual_label == auto_label:
+                merged_labels.append(auto_label)
+                merged_pred.append(auto_prob)
+                merged_methods.append(
+                    'MEGNet' if self.dtype == 'meg' else 'ICLabel')
+            else:
+                merged_labels.append(manual_label)
+                merged_pred.append(1.0)
+                merged_methods.append('Manual')
+        
         match_auto_labels = {
-            'labels': ic_labels,
-            'y_pred_proba': np.array([1.0] * len(ic_labels)),
+            'labels': merged_labels,
+            'y_pred_proba': np.array(merged_pred),
+            'methods': merged_methods,
         }
         return ica, match_auto_labels
 
@@ -184,10 +203,10 @@ class ICARunner(BaseLoader):
         sphere: float | None = None,
     ) -> plt.Figure:
         """plot ICA components with labels"""
-        logger.info('Plotting ICA components with labels...')
+        logger.trace('Plotting ICA components with labels...')
         if sphere is None:
             sphere = 0.2 if self.dtype == 'meg' else 0.15
-            logger.info(
+            logger.trace(
                 f'sphere is not provided, set to {sphere} for {self.dtype} data.',
             )
         labels = ic_labels['labels']
@@ -290,11 +309,10 @@ class ICARunner(BaseLoader):
         labels: ICLabels,
         fname: str,
         save_keywargs: dict | None = None,
-        label_method: str | None = None,
         author: str | None = 'n/a',
     ) -> None:
         """save ICA component plots to file"""
-        logger.info(f'Saving ICA derivative files to {fname} ...')
+        logger.trace(f'Saving ICA derivative files to {fname} ...')
         if save_keywargs is None:
             save_keywargs = dict(
                 dpi=300,
@@ -317,8 +335,6 @@ class ICARunner(BaseLoader):
         status = ['good'] * ica.n_components_
         status_description = ['n/a'] * ica.n_components_
         ic_type = ['n/a'] * ica.n_components_
-        if label_method is None:
-            label_method = 'iclabel' if self.dtype == 'eeg' else 'megnet'
 
         if ica.labels_:
             for label, comps in ica.labels_.items():
@@ -343,18 +359,20 @@ class ICARunner(BaseLoader):
                 description=['Independent Component'] * ica.n_components_,
                 status=status,
                 status_description=status_description,
-                annotate_method=[label_method] * ica.n_components_,
+                annotate_method=labels['methods'],
                 annotate_author=[author] * ica.n_components_,
                 ic_type=ic_type,
+                pred_prob = labels['y_pred_proba'].tolist(),
             ),
         )
         component_json = {
-            'annotate_method': 'Method used for annotating components (e.g. manual, '
-            + 'iclabel)',
+            'annotate_method': 'Method used for annotating components (e.g. Manual, ICLabel)',
             'annotate_author': 'The name of the person who ran the annotation',
             'ic_type': "The type of annotation must be one of ['brain', "
-            "'muscle artifact', 'eye blink', 'heart beat', 'line noise', "
-            "'channel noise', 'other']",
+                "'muscle artifact', 'eye blink', 'heart beat', 'line noise', "
+                "'channel noise', 'other']",
+            'pred_prob': 'The predicted probability of the component belonging to the annotated type,'
+                "if annotated manually, this value is 1.0",
         }
 
         tsv_data.to_csv(
@@ -367,6 +385,22 @@ class ICARunner(BaseLoader):
             json.dump(component_json, jf, indent=4)
         ica.save(f'{fname}.fif', overwrite=True)
 
+    
+    def load_lc_labels(
+        self,
+        fname: str,
+    ) -> ICLabels:
+        data_df = pd.read_csv(fname, sep='\t')
+        labels = data_df['ic_type'].tolist()
+        pred_prob = data_df['pred_prob'].to_numpy()
+        methods = data_df['annotate_method'].tolist()
+        return ICLabels(
+            labels=labels,
+            y_pred_proba=pred_prob,
+            methods=methods,
+        )
+        
+
     def regress_artifacts(
         self,
         ica: ICA,
@@ -377,14 +411,13 @@ class ICARunner(BaseLoader):
         sfreq: float | None = 250,
     ) -> BaseRaw:
         """regress out artifact components from raw data"""
-        logger.info('Regressing out artifact components...')
+        logger.trace('Regressing out artifact components...')
         if highpass is None:
-            highpass = raw.info['highpass']
+            highpass = ica.info['highpass']
         if lowpass is None:
-            lowpass = raw.info['lowpass']
+            lowpass = ica.info['lowpass']
         if sfreq is None:
-            sfreq = raw.info['sfreq']
-
+            sfreq = ica.info['sfreq']
         _raw = self._prep_raw(
             raw,
             highpass=highpass,
@@ -411,7 +444,8 @@ class ICARunner(BaseLoader):
         ncomp: int | float | None = None,
         # Pipline control
         manual: bool = False,
-        ic_labels: list[str] | None = None,
+        manual_labels: list[str] | None = None,
+        auto_labels: ICLabels | str | None = None,
         ica: ICA | None = None,
         # derivative saving params
         save_deriv: bool = True,
@@ -454,6 +488,12 @@ class ICARunner(BaseLoader):
         logger.info(
             f"Running ICA {'manual' if manual else 'auto'} pipeline...",
         )
+        if regress and not manual:
+            logger.warning(
+                'Regressing artifacts without manual checking.'
+                'Please make sure the automatic'
+                'labeling is reliable before regression.',
+            )
         raw = self.raw.copy()
         if any(
             val != val_regress
@@ -466,25 +506,39 @@ class ICARunner(BaseLoader):
                 'ICA decomposition and regression use different filtering '
                 'and resampling settings.',
             )
+        in_raw = self._prep_raw(raw, highpass, lowpass, sfreq)
         match manual:
             case False:
-                in_raw = self._prep_raw(raw, highpass, lowpass, sfreq)
                 ica = self._feature_extra(in_raw, ncomp)
                 ica, ic_labels = self.label_ica_components_auto(
                     in_raw,
                     ica,
                 )
-                label_method = 'MEGNet' if self.dtype == 'meg' else 'ICLabel'
             case True:
-                if ica is None or ic_labels is None:
+                if ica is None or manual_labels is None:
                     raise ValueError(
-                        'manual labeling requires both ica and ic_labels provided.',
+                        'manual labeling requires both ica and manual_labels provided.',
                     )
+                
+                if auto_labels is None:
+                    try:
+                        auto_labels_path = str(fname) + f'_desc-ica_{self.dtype}.tsv'
+                        auto_labels = self.load_lc_labels(auto_labels_path)
+                    except Exception as e:
+                        raise ValueError(
+                            'Please provide auto_labels path or ICLabels object for manual labeling.',
+                            e
+                        ) from e
+
+                elif isinstance(auto_labels, str):
+                    auto_labels_path = auto_labels
+                    auto_labels = self.load_lc_labels(auto_labels_path)
+                
                 ica, ic_labels = self.label_ica_components_manual(
                     ica,
-                    ic_labels,
+                    auto_labels=auto_labels,
+                    manual_labels=manual_labels,
                 )
-                label_method = 'manual'
 
         if save_deriv:
             if fname is None:
@@ -498,9 +552,8 @@ class ICARunner(BaseLoader):
                 in_raw,
                 ic_labels,
                 fname,
-                label_method=label_method,
             )
-            logger.success(f'ICA derivative files saved to {fname}.*')
+            logger.trace(f'ICA derivative files saved to {fname}.*')
 
         if regress:
             reg_raw = self.regress_artifacts(
@@ -510,5 +563,5 @@ class ICARunner(BaseLoader):
                 lowpass=lowpass_regress,
                 sfreq=sfreq_regress,
             )
-            logger.success('Artifact components regressed out from raw data.')
+            logger.trace('Artifact components regressed out from raw data.')
             return reg_raw

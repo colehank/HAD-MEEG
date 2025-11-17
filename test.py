@@ -1,30 +1,44 @@
 # %%
 from __future__ import annotations
 
-from mne_bids import BIDSPath
+from src.config import DataConfig
+# from src.prep import PrepPipeline
+from src.prep import BatchPrepPipeline
 
-from src.prep import PrepPipeline
+from loguru import logger
+import sys
+logger.remove()
+logger.add(sys.stderr, level="WARNING")
+logger.add("batch.log", level="TRACE")
+# sub = '01'
+# all_bids = cfg.source[sub]
+
+# # %%
+# meg_bids = cfg.source[sub]['meg'][0]
+# eeg_bids = cfg.source[sub]['eeg'][0]
+# # meg_pipe = PrepPipeline(bids=meg_bids)
+# eeg_pipe = PrepPipeline(bids=eeg_bids)
+# # %%
+# # meg_pipe.run(save=False)
+# eeg_pipe.run(save=False)
+# # %%
+# pip_1 = PrepPipeline(bids=eeg_bids)
+# clean = pip_1.run(
+#     save=True,
+#     manual_ica_checked = True,
+#     regress=True,
+# )
 # %%
+if __name__ == '__main__':
+    cfg = DataConfig()
 
-
-def get_test_bids() -> BIDSPath:
-    ROOT = 'resources/toy_bids'
-    test_bids = BIDSPath(
-        subject='01',
-        session='01',
-        datatype='meg',
-        task='rest',
-        root=ROOT,
+    all_bids = cfg.source_bids_list
+    batch_pipe = BatchPrepPipeline(
+        bids_list=all_bids,
+        use_cuda=True,
     )
-    test_bids_eeg = test_bids.copy().update(datatype='eeg')
-    return {'meg': test_bids, 'eeg': test_bids_eeg}
-
-
-meg_bdis = get_test_bids()['meg']
-eeg_bdis = get_test_bids()['eeg']
-meg_pipe = PrepPipeline(bids=meg_bdis)
-eeg_pipe = PrepPipeline(bids=eeg_bdis)
-# %%
-meg_pipe.run(save=False)
-eeg_pipe.run(save=False)
+    batch_pipe.run(
+        manual_ica_checked=False,
+        regress=False,
+    )
 # %%

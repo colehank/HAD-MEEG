@@ -37,7 +37,7 @@ class BadChsRunner(BaseLoader):
         # To protect raw influenced by multi-composentation,
         # we use a copy here for bad ch detection
         if _raw.compensation_grade != 0:
-            logger.info(
+            logger.trace(
                 f'CTF data has compensation grade {_raw.compensation_grade},'
                 f'applying 0-compensation to its copy for bad channel detection.',
             )
@@ -53,7 +53,7 @@ class BadChsRunner(BaseLoader):
         )
         self.bads = list(set(auto_noisy_chs + auto_flat_chs))
         raw.info['bads'].extend(self.bads)
-        logger.success(
+        logger.trace(
             f'Detected {len(self.bads)} bad MEG channels',
         )
         return raw
@@ -62,7 +62,7 @@ class BadChsRunner(BaseLoader):
         self,
         find_in: list | None = None,
     ) -> BaseRaw:
-        logger.info('Detecting bad EEG channels...')
+        logger.trace('Detecting bad EEG channels...')
         raw = self.raw.copy()
         raw = self._pick_chs(raw, find_in)
 
@@ -73,7 +73,7 @@ class BadChsRunner(BaseLoader):
 
         self.bads = finder.get_bads()
         raw.info['bads'].extend(self.bads)
-        logger.success(
+        logger.trace(
             f'Detected {len(self.bads)} bad EEG channels',
         )
         return raw
@@ -87,6 +87,7 @@ class BadChsRunner(BaseLoader):
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
+        logger.info("bad channels detecting & fixing")
         match self.dtype:
             case 'meg':
                 clean_raw = self._handle_meg(origin, find_in)
@@ -100,7 +101,6 @@ class BadChsRunner(BaseLoader):
                 reset_bads=reset_bads,
                 method=dict(meg='MNE', eeg='spline'),
             )
-            logger.success('Interpolated bad channels.')
 
         if save_deriv:
             if fname is None:
@@ -128,7 +128,6 @@ class BadChsRunner(BaseLoader):
                 encoding='utf-8',
                 na_rep='n/a',
             )
-            logger.success(f'Saved bad channel annotated raw to {fname}')
 
             fname_json = fname.with_suffix('.json')
             meta = {
@@ -139,6 +138,8 @@ class BadChsRunner(BaseLoader):
             }
             with open(fname_json, 'w') as f:
                 json.dump(meta, f, indent=4)
-            logger.success(f'Saved sidecar json to {fname_json}')
+
+            logger.trace(f'Saved bad channel annotated raw to {fname}')
+            logger.trace(f'Saved sidecar json to {fname_json}')
 
         return clean_raw

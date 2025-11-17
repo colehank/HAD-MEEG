@@ -49,7 +49,7 @@ class LineNoiseRunner(BaseLoader):
         fline: float = 50.0,
     ) -> BaseRaw:
         """apply zapline iterative method for line noise removal"""
-        logger.info('Applying zapline iterative line noise removal...')
+        logger.trace('Applying zapline iterative line noise removal...')
         raw = self.raw.copy()
         data = self._make_zapline_feature(raw)
         sfreq = raw.info['sfreq']
@@ -70,7 +70,7 @@ class LineNoiseRunner(BaseLoader):
         removing_ratio: float = 0.22,
     ) -> BaseRaw:
         """apply zapline method for line noise removal"""
-        logger.info('Applying zapline line noise removal...')
+        logger.trace('Applying zapline line noise removal...')
         raw = self.raw.copy()
         nremove = (
             int(len(raw.info['ch_names']) * removing_ratio)
@@ -115,6 +115,7 @@ class LineNoiseRunner(BaseLoader):
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
+        logger.info('Removing fline')
         self.raw = self._pick_chs(self.raw, find_in)
         match self.dtype:
             case 'meg':
@@ -135,7 +136,9 @@ class LineNoiseRunner(BaseLoader):
                 clean,
                 title='Line Noise Removal Comparison',
             )
-            fig.savefig(fname)
-            logger.success(f'Saved PSD comparison plot to {fname}')
+            fig.savefig(fname, transparent=True, dpi=300, bbox_inches='tight')
+            logger.trace(f'Saved PSD comparison plot to {fname}')
 
         return clean
+
+# %%

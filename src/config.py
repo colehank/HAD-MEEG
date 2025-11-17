@@ -118,6 +118,15 @@ class DataConfig(BaseSettings):
                         },
                     )
         return pd.DataFrame(rows)
+    
+    @cached_property
+    def source_bids_list(self) -> list[BIDSPath]:
+        """Create a list of all source BIDSPaths."""
+        bids_list: list[BIDSPath] = []
+        for ses_dic in self.source.values():
+            for bp_list in ses_dic.values():
+                bids_list.extend(bp_list)
+        return bids_list
 
     def _find_source(self) -> dict[str, dict[str | None, list[BIDSPath]]]:
         """Find all BIDSPaths matching the configured subjects, sessions, tasks, runs, and datatypes."""
