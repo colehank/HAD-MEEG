@@ -179,3 +179,7 @@ cython_debug/
 
 # sample data files
 .resources/toy_bids
+
+# user log files
+logs/*
+.pyc
