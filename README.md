@@ -8,9 +8,6 @@ This project uses **uv** to manage Python dependencies(Install [uv](https://docs
 ```bash
 git clone https://github.com/colehank/HAD-MEEG.git
 cd HAD-MEEG
-```
-
-```bash
 uv sync
 ```
 
