@@ -1,6 +1,6 @@
 # HAD-MEEG
 
-Human Action Dataset — MEEG Dataset Processing code.
+Human Action Dataset — MEEG Data Processing code.
 
 ## Installation
 This project uses **uv** to manage Python dependencies(Install [uv](https://docs.astral.sh/uv/getting-started/installation/)).
