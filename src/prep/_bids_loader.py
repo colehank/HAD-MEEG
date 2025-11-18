@@ -13,7 +13,6 @@ class BaseLoader:
         self,
         raw: BaseRaw,
         dtype: DType | None = None,
-        random_state: int = 42,
     ):
         if dtype is None:
             dtype = self._infer_dtype(raw)
@@ -25,7 +24,6 @@ class BaseLoader:
         logger.trace(f'Initialized BaseLoader with dtype={dtype}')
         self.raw = raw
         self.dtype: DType = dtype
-        self.random_state = random_state
 
     def _infer_dtype(self, raw) -> str:
         ch_types = set(raw.get_channel_types())

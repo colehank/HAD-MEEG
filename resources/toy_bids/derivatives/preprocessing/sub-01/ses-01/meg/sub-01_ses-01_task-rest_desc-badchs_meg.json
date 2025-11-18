@@ -1,6 +1,0 @@
-{
-    "name": "Channels' name",
-    "type": "Channel type, e.g., EEG, MEG",
-    "status": "Channel status, good or bad",
-    "status_description": "Description of the channel status, e.g., fixed if interpolated"
-}

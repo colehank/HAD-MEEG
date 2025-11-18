@@ -22,7 +22,8 @@ class LineNoiseRunner(BaseLoader):
         dtype: str | None = None,
         random_state: int = 42,
     ):
-        super().__init__(raw, dtype, random_state)
+        super().__init__(raw, dtype)
+        self.random_state = random_state
 
     def _make_zapline_feature(
         self,

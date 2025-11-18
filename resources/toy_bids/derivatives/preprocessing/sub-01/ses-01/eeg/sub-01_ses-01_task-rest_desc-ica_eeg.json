@@ -1,6 +1,0 @@
-{
-    "annotate_method": "Method used for annotating components (e.g. manual, iclabel)",
-    "annotate_author": "The name of the person who ran the annotation",
-    "ic_type": "The type of annotation must be one of ['brain', 'muscle artifact', 'eye blink', 'heart beat', 'line noise', 'channel noise', 'other']",
-    "pred_prob": "The predicted probability of the component belonging to the annotated type,if annotated manually, this value is 1.0"
-}

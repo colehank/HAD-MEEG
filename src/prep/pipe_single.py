@@ -26,10 +26,12 @@ class PrepPipeline:
         deri_root: str | Path | None = None,
         n_jobs: int = 1,
         use_cuda: bool = True,
+        random_state: int = RANDOM_SEED,
     ):
         self.bids = bids
         self.bids_root = bids.root
         self.dtype = bids.datatype
+        self.random_state = random_state
 
         if deri_root is None:
             self.prep_root = bids.root / 'derivatives' / 'preproc'
@@ -145,12 +147,12 @@ class PrepPipeline:
 
         save_fname = self.save_fname
         # 1. Bad channel detection
-        runner = BadChsRunner(raw=self.raw)
+        runner = BadChsRunner(raw=self.raw, random_state=self.random_state)
         self.raw = runner.run(fname=save_fname)
         logger.success('Bad channel detection completed.')
 
         # 2. Line noise removal
-        runner = LineNoiseRunner(raw=self.raw)
+        runner = LineNoiseRunner(raw=self.raw, random_state=self.random_state)
         self.raw = runner.run(fname=save_fname)
         logger.success('Line noise removal completed.')
 
@@ -164,7 +166,7 @@ class PrepPipeline:
         logger.success('Reference denoising completed.')
 
         # 4. ICA artifact removal
-        runner = ICARunner(raw=self.raw)
+        runner = ICARunner(raw=self.raw, random_state=self.random_state)
         self.raw = runner.run(
             regress=regress,
             fname=save_fname,
@@ -186,7 +188,7 @@ class PrepPipeline:
         if save:
             logger.info('Saving final clean BaseRaw.')
             save_fname = self.save_fname.with_name(
-                self.save_fname.stem + f'_desc-preproc_{self.dtype}.fif',
+                self.save_fname.stem + f'_preproc_{self.dtype}.fif',
             )
             self.raw.save(save_fname, overwrite=True)
             logger.trace(f'Final clean BaseRaw saved to {save_fname}')

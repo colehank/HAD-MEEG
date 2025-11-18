@@ -18,4 +18,5 @@ dependencies = [
     "pydantic-settings>=2.8.1",
     "pyprep>=0.4.3",
     "seaborn>=0.13.2",
+    "tqdm-joblib>=0.0.5",
 ]
