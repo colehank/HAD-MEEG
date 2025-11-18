@@ -26,7 +26,7 @@ def plot_2d_topo(
     **kwargs,
 ):
     if picks is None:
-        picks = raw.info['ch_names']
+        picks = raw.info["ch_names"]
     mne.viz.plot_topomap(
         data=data,
         pos=get_2d_pos(raw, picks=picks),

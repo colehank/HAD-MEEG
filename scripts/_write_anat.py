@@ -12,18 +12,18 @@ from tqdm.auto import tqdm
 
 from src.config import DataConfig
 
-fMRI_ROOT = '/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/data_upload/HAD'
+fMRI_ROOT = "/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/data_upload/HAD"
 # %%
 config = DataConfig()
-fmri_subs = get_entity_vals(fMRI_ROOT, 'subject')
+fmri_subs = get_entity_vals(fMRI_ROOT, "subject")
 MEEG_ROOT = config.bids_root
 # %%
 anat_imgs = {
     sub: find_matching_paths(
         fMRI_ROOT,
         subjects=sub,
-        extensions='.nii.gz',
-        datatypes='anat',
+        extensions=".nii.gz",
+        datatypes="anat",
     )
     for sub in fmri_subs
 }
@@ -32,21 +32,21 @@ for sub in tqdm(anat_imgs):
     src_bids = anat_imgs[sub][0]
     dst_bids = BIDSPath(
         subject=src_bids.subject,
-        session='mri',
+        session="mri",
         task=None,
         run=None,
         root=MEEG_ROOT,
-        extension='.nii.gz',
-        datatype='anat',
+        extension=".nii.gz",
+        datatype="anat",
     )
     sidecar_json = (
         src_bids.copy()
         .update(
-            extension='.json',
+            extension=".json",
         )
         .fpath
     )
-    dst_sidecar_json = f'{MEEG_ROOT}/sub-{sub}/ses-mri/anat/sub-{sub}_ses-mri_T1w.json'
+    dst_sidecar_json = f"{MEEG_ROOT}/sub-{sub}/ses-mri/anat/sub-{sub}_ses-mri_T1w.json"
     shutil.copy(sidecar_json, dst_sidecar_json)
 
     # scan_dir = sidecar_json.parent.parent
@@ -69,18 +69,18 @@ for sub in tqdm(anat_imgs):
 
 # %%
 sub_evs = {
-    sub: config.derivatives_root / f'detailed_events/sub-{sub}_events.csv'
+    sub: config.derivatives_root / f"detailed_events/sub-{sub}_events.csv"
     for sub in config.subjects
 }
 all_evs = pd.concat([pd.read_csv(fp) for fp in sub_evs.values()], axis=0)
 # %%
-uni_cls = all_evs['class_id'].unique().tolist()
-uni_super_cls = all_evs['super_class_id'].unique().tolist()
+uni_cls = all_evs["class_id"].unique().tolist()
+uni_super_cls = all_evs["super_class_id"].unique().tolist()
 dfs = []
 for clss in uni_cls:
-    df = all_evs[all_evs['class_id'] == clss]
-    uni_vid = df['video_id'].unique().tolist()
+    df = all_evs[all_evs["class_id"] == clss]
+    uni_vid = df["video_id"].unique().tolist()
     print(
-        f'Class {clss} has {len(df)} events.  covering {len(uni_vid)} videos.',
+        f"Class {clss} has {len(df)} events.  covering {len(uni_vid)} videos.",
     )
 # %%

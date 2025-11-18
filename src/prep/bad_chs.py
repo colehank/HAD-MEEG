@@ -39,8 +39,8 @@ class BadChsRunner(BaseLoader):
         # we use a copy here for bad ch detection
         if _raw.compensation_grade != 0:
             logger.trace(
-                f'CTF data has compensation grade {_raw.compensation_grade},'
-                f'applying 0-compensation to its copy for bad channel detection.',
+                f"CTF data has compensation grade {_raw.compensation_grade},"
+                f"applying 0-compensation to its copy for bad channel detection.",
             )
             _raw.apply_gradient_compensation(0)
         _raw = self._pick_chs(_raw, find_in)
@@ -53,9 +53,9 @@ class BadChsRunner(BaseLoader):
             calibration=None,
         )
         self.bads = list(set(auto_noisy_chs + auto_flat_chs))
-        raw.info['bads'].extend(self.bads)
+        raw.info["bads"].extend(self.bads)
         logger.trace(
-            f'Detected {len(self.bads)} bad MEG channels',
+            f"Detected {len(self.bads)} bad MEG channels",
         )
         return raw
 
@@ -63,7 +63,7 @@ class BadChsRunner(BaseLoader):
         self,
         find_in: list | None = None,
     ) -> BaseRaw:
-        logger.trace('Detecting bad EEG channels...')
+        logger.trace("Detecting bad EEG channels...")
         raw = self.raw.copy()
         raw = self._pick_chs(raw, find_in)
 
@@ -73,9 +73,9 @@ class BadChsRunner(BaseLoader):
         finder.find_bad_by_ransac()
 
         self.bads = finder.get_bads()
-        raw.info['bads'].extend(self.bads)
+        raw.info["bads"].extend(self.bads)
         logger.trace(
-            f'Detected {len(self.bads)} bad EEG channels',
+            f"Detected {len(self.bads)} bad EEG channels",
         )
         return raw
 
@@ -88,11 +88,11 @@ class BadChsRunner(BaseLoader):
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
-        logger.info('bad channels detecting & fixing')
+        logger.info("bad channels detecting & fixing")
         match self.dtype:
-            case 'meg':
+            case "meg":
                 clean_raw = self._handle_meg(origin, find_in)
-            case 'eeg':
+            case "eeg":
                 clean_raw = self._handle_eeg(find_in)
             case _:
                 raise ValueError("datatype must be 'eeg' or 'meg'")
@@ -100,47 +100,47 @@ class BadChsRunner(BaseLoader):
             clean_raw.load_data()
             clean_raw.interpolate_bads(
                 reset_bads=reset_bads,
-                method=dict(meg='MNE', eeg='spline'),
+                method=dict(meg="MNE", eeg="spline"),
             )
 
         if save_deriv:
             if fname is None:
                 raise ValueError(
-                    'Please provide a filename to save the derivative.',
+                    "Please provide a filename to save the derivative.",
                 )
-            fname = Path(f'{fname}_desc-badchs_{self.dtype}.tsv')
+            fname = Path(f"{fname}_desc-badchs_{self.dtype}.tsv")
             os.makedirs(fname.parent, exist_ok=True)
             chs = clean_raw.ch_names
-            status = ['good'] * len(chs)
-            status_desc = ['fixed' if ch in self.bads else 'n/a' for ch in chs]
+            status = ["good"] * len(chs)
+            status_desc = ["fixed" if ch in self.bads else "n/a" for ch in chs]
 
             df = pd.DataFrame(
                 {
-                    'name': chs,
-                    'type': [self.dtype] * len(chs),
-                    'status': status,
-                    'status_description': status_desc,
+                    "name": chs,
+                    "type": [self.dtype] * len(chs),
+                    "status": status,
+                    "status_description": status_desc,
                 },
             )
             df.to_csv(
                 fname,
-                sep='\t',
+                sep="\t",
                 index=False,
-                encoding='utf-8',
-                na_rep='n/a',
+                encoding="utf-8",
+                na_rep="n/a",
             )
 
-            fname_json = fname.with_suffix('.json')
+            fname_json = fname.with_suffix(".json")
             meta = {
-                'name': "Channels' name",
-                'type': 'Channel type, e.g., EEG, MEG',
-                'status': 'Channel status, good or bad',
-                'status_description': 'Description of the channel status, e.g., fixed if interpolated',
+                "name": "Channels' name",
+                "type": "Channel type, e.g., EEG, MEG",
+                "status": "Channel status, good or bad",
+                "status_description": "Description of the channel status, e.g., fixed if interpolated",
             }
-            with open(fname_json, 'w') as f:
+            with open(fname_json, "w") as f:
                 json.dump(meta, f, indent=4)
 
-            logger.trace(f'Saved bad channel annotated raw to {fname}')
-            logger.trace(f'Saved sidecar json to {fname_json}')
+            logger.trace(f"Saved bad channel annotated raw to {fname}")
+            logger.trace(f"Saved sidecar json to {fname_json}")
 
         return clean_raw

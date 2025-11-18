@@ -53,45 +53,45 @@ class DataConfig(BaseSettings):
     tasks: list[str] = Field(default_factory=list)
     runs: list[str] = Field(default_factory=list)
 
-    datatypes: list[str] = Field(default_factory=lambda: ['meg', 'eeg'])
+    datatypes: list[str] = Field(default_factory=lambda: ["meg", "eeg"])
     meg_raw_extension: str | None = None
     eeg_raw_extension: str | None = None
 
     model_config = SettingsConfigDict(
-        env_prefix='MEEG_',
-        env_file='.env',
+        env_prefix="MEEG_",
+        env_file=".env",
         case_sensitive=False,
-        extra='ignore',
+        extra="ignore",
     )
 
     # ---------- validators ----------
 
-    @field_validator('derivatives_root', mode='before')
+    @field_validator("derivatives_root", mode="before")
     @classmethod
     def set_default_derivatives_root(cls, v, info):
         """If derivatives_root is not set, default to bids_root/derivatives."""
         if v is not None:
             return v
-        bids_root = info.data.get('bids_root')
+        bids_root = info.data.get("bids_root")
         if not bids_root:
             return None
-        return Path(bids_root) / 'derivatives'
+        return Path(bids_root) / "derivatives"
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def auto_fill_entities(self):
         """Auto-fill subjects, sessions, tasks, and runs if they are not set."""
         if not self.subjects:
-            self.subjects = get_entity_vals(self.bids_root, 'subject')
+            self.subjects = get_entity_vals(self.bids_root, "subject")
 
         if not self.sessions:
-            sessions = get_entity_vals(self.bids_root, 'session')
+            sessions = get_entity_vals(self.bids_root, "session")
             self.sessions = sessions or [None]
 
         if not self.tasks:
-            self.tasks = get_entity_vals(self.bids_root, 'task')
+            self.tasks = get_entity_vals(self.bids_root, "task")
 
         if not self.runs:
-            self.runs = get_entity_vals(self.bids_root, 'run')
+            self.runs = get_entity_vals(self.bids_root, "run")
 
         return self
 
@@ -109,12 +109,12 @@ class DataConfig(BaseSettings):
                 for bp in bp_list:
                     rows.append(
                         {
-                            'subject': sub,
-                            'session': ses,
-                            'task': bp.task,
-                            'run': bp.run,
-                            'datatype': bp.datatype,
-                            'raw_fpath': str(bp.fpath),
+                            "subject": sub,
+                            "session": ses,
+                            "task": bp.task,
+                            "run": bp.run,
+                            "datatype": bp.datatype,
+                            "raw_fpath": str(bp.fpath),
                         },
                     )
         return pd.DataFrame(rows)
@@ -156,8 +156,8 @@ class DataConfig(BaseSettings):
 
     def _get_extension_for_datatype(self, datatype: str) -> str | None:
         """Get the file extension for the given datatype."""
-        if datatype == 'meg':
+        if datatype == "meg":
             return self.meg_raw_extension
-        if datatype == 'eeg':
+        if datatype == "eeg":
             return self.eeg_raw_extension
         return None

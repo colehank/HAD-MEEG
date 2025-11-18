@@ -1,7 +1,10 @@
 # logging_config.py
+from __future__ import annotations
+
 import sys
-from loguru import logger
 from pathlib import Path
+
+from loguru import logger
 
 LOG_DIR = Path.cwd() / "logs"
 
@@ -9,7 +12,6 @@ LOG_DIR = Path.cwd() / "logs"
 def setup_logging(
     stdout_level: str = "WARNING",
     parallel: bool = False,
-
     fname: str = "",
     file_level: str = "TRACE",
     output_dir: Path = LOG_DIR,
