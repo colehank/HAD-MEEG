@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from src.config import DataConfig
-from src.prep import PrepPipe
+from src import PrepPipe
 
 # %%
 if __name__ == "__main__":
@@ -15,6 +15,5 @@ if __name__ == "__main__":
         random_state=42,
     )
     batch_pipe.run(
-        manual_ica_checked=False,
-        regress=False,
+        manual_ica_checked=False, regress=False, skip_raw=False, skip_ica=False
     )

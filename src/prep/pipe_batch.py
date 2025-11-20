@@ -112,6 +112,8 @@ class BatchPrepPipeline:
                     manual_ica_checked=manual_ica_checked,
                     manual_labels=manual_labels,
                     regress=regress,
+                    skip_raw=skip_raw,
+                    skip_ica=skip_ica,
                 )
                 for bids in self.bids_list
             )
