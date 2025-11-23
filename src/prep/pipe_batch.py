@@ -8,12 +8,12 @@ from mne_bids import BIDSPath
 from tqdm_joblib import tqdm_joblib
 
 from ..logger import setup_logging
-from .pipe_single import PrepPipeline
+from .pipe_single import PrepPipe
 
 RANDOM_STATE = 42
 
 
-class BatchPrepPipeline:
+class BatchPrepPipe:
     def __init__(
         self,
         bids_list: list[BIDSPath],
@@ -32,8 +32,8 @@ class BatchPrepPipeline:
         self,
         bids: BIDSPath,
         manual_ica_checked: bool,
-        manual_labels: list[str] | None,
-        regress: bool,
+        manual_labels: dict[str, list[str]] | None = None,
+        regress: bool = False,
         logging_level: str = "WARNING",
         logging_fname: str | None = None,
         skip_raw: bool = True,
@@ -75,7 +75,7 @@ class BatchPrepPipeline:
             fname=logging_fname,
         )
         try:
-            pipe = PrepPipeline(
+            pipe = PrepPipe(
                 bids=bids,
                 deri_root=self.deri_root,
                 use_cuda=self.use_cuda,
@@ -84,7 +84,9 @@ class BatchPrepPipeline:
             pipe.run(
                 save=manual_ica_checked,
                 manual_ica_checked=manual_ica_checked,
-                manual_labels=manual_labels,
+                manual_labels=manual_labels[bids.basename]["_manual_labels"]
+                if manual_labels
+                else None,
                 regress=regress,
             )
         except Exception as e:
@@ -95,7 +97,7 @@ class BatchPrepPipeline:
     def run(
         self,
         manual_ica_checked: bool = False,
-        manual_labels: list[str] | None = None,
+        manual_labels: dict[str, list[str]] | None = None,
         regress: bool = False,
         logging_level: str = "WARNING",
         logging_fname: str = None,

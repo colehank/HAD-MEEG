@@ -182,4 +182,9 @@ cython_debug/
 
 # user log files
 logs/*
+.logs/*
+.logs
+.claude
 .pyc
+
+ica_labels.json

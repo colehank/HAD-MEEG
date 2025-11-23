@@ -18,8 +18,8 @@ from mne.io import BaseRaw
 from mne.preprocessing import ICA
 from mne_icalabel import label_components
 
-from ..viz import plot_2d_topo
-from ._bids_loader import BaseLoader
+from ...viz import plot_2d_topo
+from .._bids_loader import BaseLoader
 
 
 class ICLabels(TypedDict):

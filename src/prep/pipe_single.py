@@ -19,7 +19,7 @@ RANDOM_SEED = 42
 
 
 # %%
-class PrepPipeline:
+class PrepPipe:
     def __init__(
         self,
         bids: BIDSPath,
@@ -86,7 +86,7 @@ class PrepPipeline:
     def run(
         self,
         preprep_params: dict | None = None,
-        save: bool = True,
+        save: bool = False,
         regress: bool = False,
         manual_ica_checked: bool = False,
         manual_labels: list[str] | None = None,
@@ -97,11 +97,12 @@ class PrepPipeline:
                 "Regressing artifacts without manual checking."
                 "which is not compatible in the current pipeline.",
             )
+            return
         if not save and regress:
             logger.error(
                 "Saving must be enabled when regressing artifacts.",
             )
-            return None
+            return
 
         if preprep_params is None:
             logger.trace("Using default preprep parameters.")
@@ -119,19 +120,30 @@ class PrepPipeline:
             sfreq=sfreq,
         )
         if manual_ica_checked:
-            if ica is None or manual_labels is None:
+            if ica is None:
                 logger.trace(
-                    "Manual ICA checked is True, but no ICA or manual labels provided."
+                    "Manual ICA checked is True, but no ICA provided."
                     "Trying find them from BIDS.",
                 )
+
                 fn_ica = self.save_fname.with_name(
                     self.save_fname.stem + f"_desc-ica_{self.dtype}.fif",
                 )
+                if fn_ica.is_file():
+                    ica = mne.preprocessing.read_ica(fn_ica)
+                    logger.trace(f"Loaded ICA from {fn_ica}.")
+                else:
+                    raise ValueError("Cannot find ICA from BIDS.")
+
+            if manual_labels is None:
+                logger.trace(
+                    "Manual ICA labels not provided.Trying find them from BIDS.",
+                )
+
                 fn_labels = self.save_fname.with_name(
                     self.save_fname.stem + f"_desc-ica_{self.dtype}.tsv",
                 )
-                if fn_ica.is_file() and fn_labels.is_file():
-                    ica = mne.preprocessing.read_ica(fn_ica)
+                if fn_labels.is_file():
                     import pandas as pd
 
                     df = pd.read_csv(fn_labels, sep="\t")
@@ -140,10 +152,7 @@ class PrepPipeline:
                         f"Loaded ICA and manual labels from {fn_ica} and {fn_labels}.",
                     )
                 else:
-                    raise ValueError(
-                        "Cannot find ICA or manual labels from BIDS."
-                        "Please provide them directly.",
-                    )
+                    raise ValueError("Cannot find ICA labels from BIDS.")
 
         save_fname = self.save_fname
         # 1. Bad channel detection

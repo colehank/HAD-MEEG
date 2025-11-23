@@ -6,7 +6,7 @@ from pathlib import Path
 
 from loguru import logger
 
-LOG_DIR = Path.cwd() / "logs"
+LOG_DIR = Path.cwd() / ".logs"
 
 
 def setup_logging(

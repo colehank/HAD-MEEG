@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICA Annotation Tool</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MEG ICA Component Annotation</h1>
+            <div class="current-bids">
+                <strong>Current BIDS:</strong> <span id="current-basename">Loading...</span>
+            </div>
+            <div class="progress-section">
+                <div class="progress-info">
+                    <span id="progress-text">Loading...</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="image-container">
+                <div id="main-image-wrapper">
+                    <img id="main-image" src="" alt="ICA Components">
+                    <div id="image-overlay"></div>
+                    <div id="grid-tooltip" class="grid-cell-tooltip"></div>
+                </div>
+                <div class="instructions">
+                    <p><strong>Instructions:</strong></p>
+                    <ul>
+                        <li><strong>Left click</strong> on a component to view details</li>
+                        <li><strong>Right click</strong> on a component to change its label</li>
+                        <li>Current labels are shown in the table below</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="labels-panel">
+                <h3>Component Labels</h3>
+                <div class="status-info">
+                    <span id="position-info">-</span>
+                </div>
+                <div id="labels-table"></div>
+                <div class="action-buttons">
+                    <div class="nav-buttons">
+                        <button id="prev-btn" class="btn btn-nav">← Previous</button>
+                        <button id="next-btn" class="btn btn-nav">Next →</button>
+                    </div>
+                    <button id="save-btn" class="btn btn-primary">Save & Next</button>
+                    <button id="skip-btn" class="btn btn-secondary">Skip (Use Auto Labels)</button>
+                    <button id="reload-btn" class="btn btn-tertiary">Reload Current</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu for right-click -->
+    <div id="context-menu" class="context-menu hidden">
+        <div id="context-menu-items"></div>
+    </div>
+
+    <!-- Modal for component detail -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Component Detail</h2>
+            <img id="modal-image" src="" alt="Component Detail">
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

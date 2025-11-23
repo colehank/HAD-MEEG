@@ -39,10 +39,7 @@ class DataConfig(BaseSettings):
     eeg_raw_extension : Optional[str], optional
         File extension for EEG raw data files (e.g., ".set"). Will be loaded from environment if not set.
 
-    Returns
-    -------
-    MEEGConfig
-        An instance of the MEEGConfig class with the specified settings.
+    Att
     """
 
     bids_root: DirectoryPath
@@ -106,7 +103,8 @@ class DataConfig(BaseSettings):
         rows: list[dict[str, Any]] = []
         for sub, ses_dic in self.source.items():
             for ses, bp_list in ses_dic.items():
-                for bp in bp_list:
+                preped_runs = self.preprocessed[sub][ses]
+                for bp, prep in zip(bp_list, preped_runs):
                     rows.append(
                         {
                             "subject": sub,
@@ -114,10 +112,48 @@ class DataConfig(BaseSettings):
                             "task": bp.task,
                             "run": bp.run,
                             "datatype": bp.datatype,
-                            "raw_fpath": str(bp.fpath),
+                            "raw": str(bp.fpath),
+                            "preprocessed": str(prep),
                         },
                     )
         return pd.DataFrame(rows)
+
+    @cached_property
+    def preprocessed(self) -> dict:
+        to_return = {}
+        preproc_dir = self.derivatives_root / "preproc"
+        source = self.source
+        for sub in source:
+            to_return[sub] = {}
+            for ses in source[sub]:
+                to_return[sub][ses] = []
+                for bids in source[sub][ses]:
+                    fp = (
+                        preproc_dir
+                        / f"sub-{bids.subject}"
+                        / f"ses-{bids.session}"
+                        / bids.session
+                        / f"{bids.basename}_preproc_{bids.session}.fif"
+                    )
+                    if fp.exists():
+                        to_return[sub][ses].append(fp)
+        return to_return
+
+    @cached_property
+    def epoched(self) -> dict:
+        to_return = {}
+        epo_dir = self.derivatives_root / "epoch"
+        for sub in self.subjects:
+            to_return[sub] = {}
+            if "meg" in self.source[sub].keys():
+                fp_meg = epo_dir / f"sub-{sub}_epo_meg.fif"
+                if fp_meg.exists():
+                    to_return[sub]["meg"] = fp_meg
+            if "eeg" in self.source[sub].keys():
+                fp_eeg = epo_dir / f"sub-{sub}_epo_eeg.fif"
+                if fp_eeg.exists():
+                    to_return[sub]["eeg"] = fp_eeg
+        return to_return
 
     @cached_property
     def source_bids_list(self) -> list[BIDSPath]:
@@ -127,6 +163,16 @@ class DataConfig(BaseSettings):
             for bp_list in ses_dic.values():
                 bids_list.extend(bp_list)
         return bids_list
+
+    @cached_property
+    def detailed_events(self) -> dict[str, Path]:
+        to_return = {}
+        events_dir = self.derivatives_root / "detailed_events"
+        for sub in self.subjects:
+            fp = events_dir / f"sub-{sub}_events.csv"
+            if fp.exists():
+                to_return[sub] = fp
+        return to_return
 
     def _find_source(self) -> dict[str, dict[str | None, list[BIDSPath]]]:
         """Find all BIDSPaths matching the configured subjects, sessions, tasks, runs, and datatypes."""

@@ -1,8 +1,6 @@
-# %%
 from __future__ import annotations
 
-import os
-import os.path as op
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,72 +10,75 @@ from matplotlib import font_manager as fm
 
 from src import DataConfig
 
+
+# === Paths & constants ===
 config = DataConfig()
-ROOT = config.bids_root
-DERI_EV_DIR = op.join(config.derivatives_root, "detailed_events")
+DERI_EV_DIR = Path(config.derivatives_root) / "detailed_events"
 
-SAVE_DIR = "../HAD-MEEG_results"
-FIG_DIR = f"{SAVE_DIR}/figs"
-os.makedirs(FIG_DIR, exist_ok=True)
+SAVE_DIR = Path("../HAD-MEEG_results")
+FIG_DIR = SAVE_DIR / "figs"
+FIG_DIR.mkdir(parents=True, exist_ok=True)
 
-FONT_SIZE = 18
-FONT_PATH = "resources/Helvetica.ttc"
+FONT_SIZE: int = 18
+FONT_PATH = Path("resources/Helvetica.ttc")
 
-fm.fontManager.addfont(FONT_PATH)
-plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
-
-colormap = "Spectral"
-cmap_ = plt.get_cmap(colormap, 10)
-colors = [cmap_(i / (10 - 1)) for i in range(10)]
-color_meg = colors[2]
-color_eeg = colors[-3]
-# %%
+COLORMAP = "Spectral"
+cmap = plt.get_cmap(COLORMAP, 10)
+colors = [cmap(i / (10 - 1)) for i in range(10)]
+COLOR_MEG = colors[2]
+COLOR_EEG = colors[-3]
 
 
-def get_files(root_dir: str) -> dict[str, str]:
-    """Get a dictionary mapping subject IDs to file paths in the specified directory.
+# === Matplotlib / font setup ===
+fm.fontManager.addfont(str(FONT_PATH))
+plt.rcParams["font.family"] = fm.FontProperties(fname=str(FONT_PATH)).get_name()
+
+
+def get_files(root_dir: Path) -> dict[str, Path]:
+    """
+    Build a mapping from subject IDs to CSV file paths in the given directory.
 
     Parameters
     ----------
-    root_dir : str
-        The directory containing the CSV files.
+    root_dir : Path
+        Directory containing the CSV files.
 
     Returns
     -------
-    dict
-        A dictionary mapping subject IDs to file paths.
+    dict[str, Path]
+        Mapping from subject ID to corresponding CSV path.
     """
-    files: dict[str, str] = {}
+    files: dict[str, Path] = {}
 
-    for filename in sorted(os.listdir(root_dir)):
-        if filename.endswith(".csv"):
-            subject_id = filename.split("_")[0][-2:]
-            files[subject_id] = op.join(root_dir, filename)
+    for path in sorted(root_dir.glob("*.csv")):
+        # Assumes filenames like "sub-01_*.csv" → subject_id "01"
+        subject_id = path.name.split("_")[0][-2:]
+        files[subject_id] = path
 
     return files
 
 
-def extract_sub_accuracy(file_path: str) -> list[dict[str, object]]:
-    """Extract accuracy per session for a given subject file.
+def extract_sub_accuracy(file_path: Path) -> list[dict[str, object]]:
+    """
+    Extract accuracy per session and run for a single subject.
 
     Parameters
     ----------
-    file_path : str
-        Path to the subject's data file.
+    file_path : Path
+        Path to the subject's CSV file.
 
     Returns
     -------
-    list of dict
-        A list of records with keys: 'sub', 'session', 'run', 'accuracy'.
+    list[dict[str, object]]
+        Records with keys: 'sub', 'session', 'run', 'accuracy'.
     """
     event_data = pd.read_csv(file_path)
     subject_accuracy: list[dict[str, object]] = []
 
     for sess in event_data["session"].unique():
         sess_data = event_data[event_data["session"] == sess]
-        runs = sess_data["run"].unique()
 
-        for run in runs:
+        for run in sess_data["run"].unique():
             run_data = sess_data[sess_data["run"] == run]
             correct_responses = run_data[run_data["resp_is_right"]]
 
@@ -88,7 +89,7 @@ def extract_sub_accuracy(file_path: str) -> list[dict[str, object]]:
 
             subject_accuracy.append(
                 {
-                    "sub": file_path.split("/")[-1].split("_")[0][-2:],
+                    "sub": file_path.stem.split("_")[0][-2:],
                     "session": sess,
                     "run": run,
                     "accuracy": accuracy,
@@ -98,24 +99,54 @@ def extract_sub_accuracy(file_path: str) -> list[dict[str, object]]:
     return subject_accuracy
 
 
-def extract_accuracy(files_dict: dict[str, str]) -> pd.DataFrame:
-    """Extract accuracies for all subjects given a mapping from subject ID to file path."""
-    accuracies: list[pd.DataFrame] = []
+def extract_accuracy(files_dict: dict[str, Path]) -> pd.DataFrame:
+    """
+    Extract accuracy for all subjects in the given mapping.
 
-    for subject_id in files_dict:
-        acc = pd.DataFrame(extract_sub_accuracy(files_dict[subject_id]))
-        accuracies.append(acc)
+    Parameters
+    ----------
+    files_dict : dict[str, Path]
+        Mapping from subject ID to CSV file path.
 
-    return pd.concat(accuracies, ignore_index=True)
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: 'sub', 'session', 'run', 'accuracy'.
+    """
+    all_acc: list[pd.DataFrame] = []
+
+    for file_path in files_dict.values():
+        acc = pd.DataFrame(extract_sub_accuracy(file_path))
+        all_acc.append(acc)
+
+    return pd.concat(all_acc, ignore_index=True)
 
 
 def plot_accuracy_violin_box(
     df: pd.DataFrame,
     font_size: int = FONT_SIZE,
-    color_meg: str = "#1f77b4",
-    color_eeg: str = "#ff7f0e",
+    color_meg: str | tuple = COLOR_MEG,
+    color_eeg: str | tuple = COLOR_EEG,
 ) -> plt.Figure:
-    """Plot subject accuracy (MEG/EEG) as a split violin plot + boxplot."""
+    """
+    Plot subject recognition accuracy (MEG/EEG) as split violin + boxplot.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with columns: 'sub', 'modality', 'acc'.
+    font_size : int
+        Base font size for labels and ticks.
+    color_meg : color-like
+        Color for MEG violins.
+    color_eeg : color-like
+        Color for EEG violins.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        The generated figure.
+    """
     df_box = df[["sub", "acc"]].copy()
 
     fig, ax = plt.subplots(figsize=(12, 3), dpi=300)
@@ -156,55 +187,63 @@ def plot_accuracy_violin_box(
     ax.set_ylabel("Recognition Accuracy", fontsize=font_size)
     ax.tick_params(axis="both", labelsize=font_size - 2)
 
+    # Clean up spines
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
 
-    ax.set_ylim(0.47, 1)
+    # Y axis limits and ticks
+    ax.set_ylim(0.47, 1.0)
     ax.set_yticks([0.6, 0.8, 1.0])
 
+    # Legend
     ax.legend(
+        ncols=2,
         loc="lower right",
         frameon=False,
         fontsize=font_size - 4,
-        bbox_to_anchor=(1.02, 0),
-        handlelength=1,
+        bbox_to_anchor=(1.01, -0.07),
+        handlelength=1.2,
+        columnspacing=0.5,
+        handletextpad=0.3,
     )
 
-    fig.subplots_adjust(bottom=0.15, left=0.08, right=0.98, top=0.9)
     plt.tight_layout()
     plt.show()
     return fig
 
 
-# %%
 if __name__ == "__main__":
     all_events = get_files(DERI_EV_DIR)
     acc = extract_accuracy(all_events)
 
+    # Normalize column names
     acc.columns = [c.strip().lower() for c in acc.columns]
     sub_col = "sub" if "sub" in acc.columns else "subject"
     acc_col = "accuracy" if "accuracy" in acc.columns else "acc"
     mod_col = "session" if "session" in acc.columns else "modality"
+
     df = acc[[sub_col, mod_col, acc_col]].copy()
     df = df.rename(
         columns={sub_col: "sub", mod_col: "modality", acc_col: "acc"},
     )
+
     df["modality"] = df["modality"].astype(str).str.upper().str.strip()
     df["sub"] = df["sub"].astype(str)
     df = df[df["modality"].isin(["EEG", "MEG"])]
-    fig = plot_accuracy_violin_box(df, FONT_SIZE, color_meg, color_eeg)
 
-    acc.to_csv(op.join(SAVE_DIR, "accuracy.csv"), index=False)
+    fig = plot_accuracy_violin_box(df)
+
+    acc.to_csv(SAVE_DIR / "accuracy.csv", index=False)
+
     fig.savefig(
-        op.join(FIG_DIR, "accuracy.svg"),
+        FIG_DIR / "accuracy.svg",
         dpi=300,
         bbox_inches="tight",
         transparent=True,
     )
     fig.savefig(
-        op.join(FIG_DIR, "accuracy.png"),
+        FIG_DIR / "accuracy.png",
         dpi=300,
         bbox_inches="tight",
         transparent=True,
     )
-# %%

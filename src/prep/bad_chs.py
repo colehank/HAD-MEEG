@@ -84,7 +84,7 @@ class BadChsRunner(BaseLoader):
         find_in: list | None = None,
         fix: bool = True,
         reset_bads: bool = True,
-        origin=(0.0, 0.0, 0.04),
+        origin: tuple | None = (0.0, 0.0, 0.04),
         save_deriv: bool = True,
         fname: str | None = None,
     ) -> BaseRaw:
@@ -101,6 +101,7 @@ class BadChsRunner(BaseLoader):
             clean_raw.interpolate_bads(
                 reset_bads=reset_bads,
                 method=dict(meg="MNE", eeg="spline"),
+                origin=origin if self.dtype == "meg" else "auto",
             )
 
         if save_deriv:
