@@ -6,7 +6,7 @@ from src import config, Epocher
 
 
 # Runtime configuration
-N_JOBS: int = 10
+N_JOBS: int = 8
 TMIN: float = -0.1
 TMAX: float = 2.0
 STIM_ID: str = "video on"

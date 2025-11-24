@@ -116,7 +116,11 @@ class DataConfig(BaseSettings):
                             "preprocessed": str(prep),
                         },
                     )
-        return pd.DataFrame(rows)
+        df = pd.DataFrame(rows)
+        return df
+
+    @cached_property
+    def epochs(self) -> dict[str, Path]: ...
 
     @cached_property
     def preprocessed(self) -> dict:

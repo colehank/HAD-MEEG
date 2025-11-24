@@ -57,6 +57,7 @@ class Epocher:
         highpass: float = 0.1,
         lowpass: float = 40.0,
         sfreq: float = 200.0,
+        save: bool = True,
     ) -> dict[str, mne.Epochs]:
         """Run epoching for a single subject."""
         sub_epo: dict[str, list[mne.Epochs]] = {}
@@ -75,7 +76,11 @@ class Epocher:
                 baseline_mode=baseline_mode,
             )
             epo = mne.concatenate_epochs(epos, add_offset=True)
+            if save:
+                fname = self.save_dir / f"sub-{sub}_epo_{dtype}.fif"
+                epo.save(fname, overwrite=True)
             sub_epo[dtype] = epo
+
         return sub_epo
 
     def run(
@@ -111,8 +116,9 @@ class Epocher:
             total=len(subs),
             desc="Epoching subjects",
             leave=True,
+            position=0,
         ):
-            results: list[dict[str, mne.Epochs]] = Parallel(n_jobs=n_jobs)(
+            _ = Parallel(n_jobs=n_jobs)(
                 delayed(self.run_sub)(
                     sub=sub,
                     tmin=tmin,
@@ -126,17 +132,7 @@ class Epocher:
                 )
                 for sub in subs
             )
-
-        # {sub: {dtype: Epochs}}
-        all_epos: dict[str, dict[str, mne.Epochs]] = {
-            sub: sub_epo for sub, sub_epo in zip(subs, results)
-        }
-
-        for sub, sub_epo in all_epos.items():
-            for dtype, epo in sub_epo.items():
-                fname = self.save_dir / f"sub-{sub}_epo_{dtype}.fif"
-                epo.save(fname, overwrite=True)
-
+            del _
         logger.info("All subjects epoching finished.")
 
     def _raws_to_epos(
@@ -232,7 +228,9 @@ class Epocher:
         for dtype, fp_list in fps.items():
             raws = [
                 self._load_raw(fp)
-                for fp in tqdm(fp_list, desc=f"Loading {dtype} raws", leave=False)
+                for fp in tqdm(
+                    fp_list, desc=f"Loading {dtype} raws", leave=False, position=1
+                )
             ]
             raws = [
                 self._prep_raw(raw, dtype, highpass, lowpass, sfreq)
@@ -240,6 +238,7 @@ class Epocher:
                     raws,
                     desc=f"Prep {dtype} raws: ({highpass}-{lowpass}Hz, {sfreq}Hz)",
                     leave=False,
+                    position=1,
                 )
             ]
             if dtype == "meg":
@@ -255,7 +254,9 @@ class Epocher:
         """Align CTF MEG data to head position using specified method."""
         logger.trace(f"{len(raws)} CTF raws to be aligned, ref: the first raw")
         ref_info = raws[0].info
-        for raw in tqdm(raws[1:], desc="Aligning MEG head positions"):
+        for raw in tqdm(
+            raws[1:], desc="Aligning MEG head positions", position=1, leave=False
+        ):
             this_info = raw.info
             map = mne.forward._map_meg_or_eeg_channels(
                 ref_info, this_info, mode="accurate", origin=(0.0, 0.0, 0.04)
