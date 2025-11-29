@@ -32,10 +32,10 @@ def get_detailed_events(bids):
     task = bids.task
     run = bids.run
     dirname = cfg.derivatives_root / "detailed_events"
-    ev_fp = dirname / f"sub-{sub}_events.csv"
+    ev_fp = dirname / f"sub-{sub}_events.tsv"
     if not ev_fp.exists():
         raise FileNotFoundError(f"Detailed events file not found: {ev_fp}")
-    df = pd.read_csv(ev_fp)
+    df = pd.read_csv(ev_fp, sep="\t")
     df.rename(columns={"event_name": "trial_type"}, inplace=True)
     return df[(df["task"] == task) & (df["run"] == int(run)) & (df["session"] == ses)]
 

@@ -43,7 +43,7 @@ class Epocher:
             lines.append(f"\n sub-{sub} has {meg_n} meg raws, {eeg_n} eeg raws")
         logger.trace("\n".join(lines))
 
-        self.save_dir = config.derivatives_root / "epoch"
+        self.save_dir = config.derivatives_root / "epochs"
         self.save_dir.mkdir(exist_ok=True)
 
     def run_sub(
@@ -250,10 +250,11 @@ class Epocher:
     def _align_meg_head(
         self,
         raws: list[BaseRaw],
+        ref_idx: int = 0,
     ) -> list[BaseRaw]:
         """Align CTF MEG data to head position using specified method."""
         logger.trace(f"{len(raws)} CTF raws to be aligned, ref: the first raw")
-        ref_info = raws[0].info
+        ref_info = raws[ref_idx].info
         for raw in tqdm(
             raws[1:], desc="Aligning MEG head positions", position=1, leave=False
         ):

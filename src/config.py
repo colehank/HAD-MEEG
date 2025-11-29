@@ -117,10 +117,15 @@ class DataConfig(BaseSettings):
                         },
                     )
         df = pd.DataFrame(rows)
+        df["epochs"] = df.apply(
+            lambda row: str(
+                self.derivatives_root
+                / "epochs"
+                / f"sub-{row['subject']}_epo_{row['datatype']}.fif"
+            ),
+            axis=1,
+        )
         return df
-
-    @cached_property
-    def epochs(self) -> dict[str, Path]: ...
 
     @cached_property
     def preprocessed(self) -> dict:
@@ -173,7 +178,7 @@ class DataConfig(BaseSettings):
         to_return = {}
         events_dir = self.derivatives_root / "detailed_events"
         for sub in self.subjects:
-            fp = events_dir / f"sub-{sub}_events.csv"
+            fp = events_dir / f"sub-{sub}_events.tsv"
             if fp.exists():
                 to_return[sub] = fp
         return to_return
