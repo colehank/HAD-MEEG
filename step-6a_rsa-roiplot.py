@@ -9,15 +9,19 @@ import matplotlib.pyplot as plt
 from nilearn import plotting
 from matplotlib.patches import Patch
 from src import DataConfig
-from mne_bids import read_raw_bids
-import mne
-# Configuration
+# %% Configuration
 
-
-ROOT_DIR = Path(".").resolve()
-ROI_DIR = ROOT_DIR / "resources" / "rois"
+cfg = DataConfig()
+SAVE_DIR = cfg.results_root / "rsa"
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
+ROI_DIR = Path("resources") / "rois"
 SURF_DIR = ROI_DIR / "surfaces"
 
+RES_ROI_DIR = SAVE_DIR / "rois"
+RES_SOI_DIR = SAVE_DIR / "sois"
+RES_ROI_DIR.mkdir(parents=True, exist_ok=True)
+RES_SOI_DIR.mkdir(parents=True, exist_ok=True)
+bg_color = "lightgray"
 EV_NAME = ["V1", "V2", "V3", "V4"]
 VS_NAME = [
     "V8",
@@ -67,18 +71,15 @@ ROI_NAMES = {
 
 CMAP = ListedColormap(
     [
-        "ghostwhite",  # 0 - non-visual / unclassified
-        (0.556, 0.812, 0.788, 1),  # 1 - EV
-        (1.000, 0.745, 0.478, 1),  # 2 - VS
-        (0.980, 0.498, 0.435, 1),  # 3 - LS
-        (0.510, 0.690, 0.824, 1),  # 4 - DS
+        bg_color,  # 0 - non-visual / unclassified
+        (0.510, 0.690, 0.824, 1),  # 1 - EV
+        # (0.556, 0.812, 0.788, 1),  # 2 - VS
+        bg_color,  # 2 - VS
+        (1.000, 0.745, 0.478, 1),  # 3 - LS
+        # (0.980, 0.498, 0.435, 1),  # 4 - DS
+        bg_color,  # 4 - DS
     ]
 )
-
-RES_ROI_DIR = Path("../HAD-MEEG_results/rsa/rois")
-RES_SOI_DIR = Path("../HAD-MEEG_results/rsa/sois")
-RES_ROI_DIR.mkdir(parents=True, exist_ok=True)
-RES_SOI_DIR.mkdir(parents=True, exist_ok=True)
 # Utility functions
 
 
@@ -330,7 +331,7 @@ def plot_systems_on_surface(
 
 # Main workflow
 
-
+# %%
 if __name__ == "__main__":
     # 1. Load surfaces
 
@@ -406,7 +407,7 @@ if __name__ == "__main__":
         roi_names=ROI_NAMES,
         get_label_ids_for_basename=get_label_ids_for_basename,
     )
-
+    # %%
     # 7. Plot
 
     bg = nib.load(str(SURF_DIR / "996782.L.sulc.32k_fs_LR.shape.gii")).darrays[0].data
@@ -506,59 +507,3 @@ if __name__ == "__main__":
     fig_legend.savefig(
         RES_ROI_DIR / "legend.png", dpi=300, bbox_inches="tight", transparent=True
     )
-
-    # %%
-    cfg = DataConfig()
-    meg = read_raw_bids(cfg.source["01"]["meg"][0])
-    eeg = read_raw_bids(cfg.source["01"]["eeg"][0])
-    eeg.drop_channels(["M2", "M1"])
-    # %%
-    sensors_eeg, ax_eeg = plt.subplots(1, 1, figsize=(2, 2))
-    sensors_meg, ax_meg = plt.subplots(1, 1, figsize=(2, 2))
-    head, ax = plt.subplots(1, 1, figsize=(2, 2))
-    picks_mag = mne.pick_types(meg.info, meg="mag", eeg=False)
-    picks_eeg = mne.pick_types(eeg.info, meg=False, eeg=True)
-
-    mne.viz.plot_sensors(
-        meg.info,
-        ch_type="mag",
-        ch_groups=[picks_mag],  # 所有 MEG 一个 group
-        cmap=ListedColormap(["black"]),  # 这个 group 用黑色
-        linewidth=0,
-        pointsize=3,
-        to_sphere=True,
-        sphere=0,
-        axes=ax_meg,
-        show=False,
-    )
-    mne.viz.plot_sensors(
-        eeg.info,
-        ch_type="eeg",
-        ch_groups=[picks_eeg],
-        cmap=ListedColormap(["black"]),
-        linewidth=0,
-        pointsize=3,
-        to_sphere=True,
-        sphere=0,
-        axes=ax_eeg,
-        show=False,
-    )
-
-    mne.viz.plot_sensors(
-        meg.info,
-        linewidth=0,
-        pointsize=0,
-        # to_sphere = True,
-        axes=ax,
-    )
-
-    sensors_meg.figure.savefig(
-        RES_SOI_DIR / "sensors_meg.png", dpi=300, bbox_inches="tight", transparent=True
-    )
-    sensors_eeg.figure.savefig(
-        RES_SOI_DIR / "sensors_eeg.png", dpi=300, bbox_inches="tight", transparent=True
-    )
-    head.figure.savefig(
-        RES_SOI_DIR / "head.png", dpi=300, bbox_inches="tight", transparent=True
-    )
-# %%

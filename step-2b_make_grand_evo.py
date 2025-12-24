@@ -4,8 +4,16 @@ from src.evo import EpoToEvo
 from src.epo import concat_epochs
 from joblib import Parallel, delayed, dump
 from tqdm_joblib import tqdm_joblib
+from tqdm.auto import tqdm
 import mne
 from pathlib import Path
+
+cfg = DataConfig()
+SAVE_DIR = cfg.results_root / "evos"
+GRAND_SAVE_DIR = SAVE_DIR / "grand_evo"
+SUB_SAVE_DIR = SAVE_DIR / "sub_evo"
+GRAND_SAVE_DIR.mkdir(parents=True, exist_ok=True)
+SUB_SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # %%
@@ -49,31 +57,27 @@ def avg_evo_by_meta(
 
 # %%
 if __name__ == "__main__":
-    SAVE_DIR = Path("../HAD-MEEG_results") / "grand_evo"
-    SAVE_DIR.mkdir(parents=True, exist_ok=True)
-
-    cfg = DataConfig()
     fp_meg_epos = cfg.source_df.query("datatype == 'meg'")["epochs"].unique().tolist()
     fp_eeg_epos = cfg.source_df.query("datatype == 'eeg'")["epochs"].unique().tolist()
     # %%
-    # eeg_epos = read_epos(fp_eeg_epos, n_jobs=10)
-    # eeg_epo = concat_epos(eeg_epos, align_head=False, n_jobs=10)
-    # eeg_evo = avg_evo_by_meta(
-    #     eeg_epo,
-    #     by_col='class_id',
-    #     remaining_cols=[
-    #         'class_name',
-    #         'raw_superclass_name',
-    #         'superclass_level0',
-    #         'superclass_level1',
-    #         'superclass_level2',
-    #         ],
-    #     n_jobs=10,
-    # )
-    # dump(eeg_evo, SAVE_DIR / "grand_evo_eeg.pkl")
-    # del eeg_epos
-    # del eeg_epo
-    # del eeg_evo
+    eeg_epos = read_epos(fp_eeg_epos, n_jobs=10)
+    eeg_epo = concat_epos(eeg_epos, align_head=False, n_jobs=10)
+    eeg_evo = avg_evo_by_meta(
+        eeg_epo,
+        by_col="class_id",
+        remaining_cols=[
+            "class_name",
+            "raw_superclass_name",
+            "superclass_level0",
+            "superclass_level1",
+            "superclass_level2",
+        ],
+        n_jobs=10,
+    )
+    dump(eeg_evo, GRAND_SAVE_DIR / "grand_evo_eeg.pkl")
+    del eeg_epos
+    del eeg_epo
+    del eeg_evo
     # %%
     meg_epos = read_epos(fp_meg_epos, n_jobs=10)
     meg_epo = concat_epos(meg_epos, align_head=True, n_jobs=10)
@@ -89,4 +93,29 @@ if __name__ == "__main__":
         ],
         n_jobs=10,
     )
-    dump(meg_evo, SAVE_DIR / "grand_evo_meg.pkl")
+    dump(meg_evo, GRAND_SAVE_DIR / "grand_evo_meg.pkl")
+    del meg_epos
+    del meg_epo
+    del meg_evo
+    # %%
+    for fp in tqdm(fp_eeg_epos + fp_meg_epos):
+        fp = Path(fp)
+        fn = fp.name
+        save_fp = SUB_SAVE_DIR / fn.replace("epo", "evo").replace(".fif", ".pkl")
+        epo = mne.read_epochs(fp)
+        evo = avg_evo_by_meta(
+            epo,
+            by_col="class_id",
+            remaining_cols=[
+                "subject",
+                "session",
+                "class_name",
+                "raw_superclass_name",
+                "superclass_level0",
+                "superclass_level1",
+                "superclass_level2",
+            ],
+            n_jobs=30,
+        )
+        dump(evo, save_fp)
+# %%

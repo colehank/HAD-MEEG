@@ -8,6 +8,8 @@ results/
 # C extensions
 *.so
 
+test/
+
 # macos
 .DS_Store
 # Distribution / packaging

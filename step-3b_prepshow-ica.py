@@ -9,37 +9,24 @@ import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 from src import DataConfig
 from src.viz.utils import get_2d_pos
+from pathlib import Path
 
 cfg = DataConfig()
 SUB = "02"
 SES = "action"
 RUN = "02"
-
-ROOT = cfg.bids_root
-
-SAVE_DIR = "../HAD-MEEG_results"
-FIG_DIR = f"{SAVE_DIR}/figs"
-
-FONT_PATH = "resources/Helvetica.ttc"
 T_MIN = 50
 T_MAX = 65
 
+ROOT = cfg.bids_root
+
+SAVE_DIR = cfg.results_root / "prepshow-ica"
+
+FONT_PATH = Path("resources") / "Helvetica.ttc"
+FONT_SIZE = 12
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
 fm.fontManager.addfont(FONT_PATH)
 plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
-palette = sns.color_palette(palette="tab20", n_colors=20, desat=1)
-colors = [palette[2], palette[6], palette[4]]
-# %% initialize data
-rawMEG = read_raw_bids(cfg.source[SUB]["meg"][int(RUN) - 1])
-rawEEG = read_raw_bids(cfg.source[SUB]["eeg"][int(RUN) - 1])
-
-cleanMEG = mne.io.read_raw(cfg.preprocessed[SUB]["meg"][int(RUN) - 1])
-cleanEEG = mne.io.read_raw(cfg.preprocessed[SUB]["eeg"][int(RUN) - 1])
-# %% align MEG/EEG's sampling frequency, band pass for comparison and compute PSD
-paras = {
-    "lfreq": cleanMEG.info["lowpass"],
-    "hfreq": cleanMEG.info["highpass"],
-    "sfreq": cleanMEG.info["sfreq"],
-}
 
 
 def align_raw(
@@ -58,20 +45,6 @@ def align_raw(
     raw.filter(paras["hfreq"], paras["lfreq"])
 
     return raw
-
-
-rawMEG = align_raw(rawMEG, paras)
-rawEEG = align_raw(rawEEG, paras)
-
-# %%
-# To illustrate artifact components, here we extremely decompose the raw data into 100 components.
-# This way, artifacts will be very clear, but there might be multiple same artifacts in one run.
-# This is a controversial issue, so this approach is only for demonstrat the artifact topomap.
-rawMEG_ = rawMEG.copy().filter(1, 100).resample(200)
-ica = mne.preprocessing.ICA(
-    n_components=40, method="infomax", random_state=97, fit_params=dict(extended=True)
-)
-ica.fit(rawMEG_)
 
 
 # %%
@@ -157,7 +130,7 @@ def make_main_plot(
             axes=ax,
             sensors=False,
             sphere=0.18,
-            res=200,
+            res=300,
             contours=0,
             show=False,
         )
@@ -239,45 +212,78 @@ def make_main_plot(
         else:
             ax.set_xlabel("Time (s)", fontsize=fontsize)
 
+    for ax in [ax4, ax5, ax6, ax7, ax8]:
+        ax.tick_params(axis="both", labelsize=fontsize - 2)
+
     ax7.set_title("Raw data", pad=0, fontsize=fontsize)
     ax8.set_title("Cleaned data", pad=0, fontsize=fontsize)
-    plt.tight_layout()
     plt.show()
     return fig
 
 
-artifacts = {
-    "cardio": 7,
-    "saccade": 0,
-    "blink": 2,
-}
-picks_ch = ["MLF14-4504", "MRF14-4504"]
-Epicks_ch = ["Fp1", "Fp2"]
+if __name__ == "__main__":
+    palette = sns.color_palette(palette="tab20", n_colors=20, desat=1)
+    colors = [palette[2], palette[6], palette[4]]
+    # %% initialize data
+    rawMEG = read_raw_bids(cfg.source[SUB]["meg"][int(RUN) - 1])
+    rawEEG = read_raw_bids(cfg.source[SUB]["eeg"][int(RUN) - 1])
 
-ch_indx = [rawMEG.ch_names.index(ch) for ch in picks_ch]
-Ech_indx = [rawEEG.ch_names.index(ch) for ch in Epicks_ch]
+    cleanMEG = mne.io.read_raw(cfg.preprocessed[SUB]["meg"][int(RUN) - 1])
+    cleanEEG = mne.io.read_raw(cfg.preprocessed[SUB]["eeg"][int(RUN) - 1])
+    # %% align MEG/EEG's sampling frequency, band pass for comparison and compute PSD
+    paras = {
+        "lfreq": cleanMEG.info["lowpass"],
+        "hfreq": cleanMEG.info["highpass"],
+        "sfreq": cleanMEG.info["sfreq"],
+    }
+    rawMEG = align_raw(rawMEG, paras)
+    rawEEG = align_raw(rawEEG, paras)
 
-pre_data = extract_raw_data(rawMEG, picks=ch_indx, tlim=(T_MIN, T_MAX))
-pos_data = extract_raw_data(cleanMEG, picks=ch_indx, tlim=(T_MIN, T_MAX))
-Epre_data = extract_raw_data(rawEEG, picks=Ech_indx, tlim=(T_MIN, T_MAX))
-Epos_data = extract_raw_data(cleanEEG, picks=Ech_indx, tlim=(T_MIN, T_MAX))
+    # %%
+    # To illustrate artifact components, here we extremely decompose the raw data into 100 components.
+    # This way, artifacts will be very clear, but there might be multiple same artifacts in one run.
+    # This is a controversial issue, so this approach is only for demonstrat the artifact topomap.
+    rawMEG_ = rawMEG.copy().filter(1, 100).resample(200)
+    ica = mne.preprocessing.ICA(
+        n_components=40,
+        method="infomax",
+        random_state=97,
+        fit_params=dict(extended=True),
+    )
+    ica.fit(rawMEG_)
 
-fig = make_main_plot(
-    T_MIN,
-    T_MAX,
-    fontsize=12,
-    ica=ica,
-    raw4plot=rawMEG_,
-    arti_data=artifacts,
-    colors=colors,
-    pre_data=pre_data,
-    pos_data=pos_data,
-    Epre_data=Epre_data,
-    Epos_data=Epos_data,
-    picks_ch=picks_ch,
-    Epicks_ch=Epicks_ch,
-)
+    artifacts = {
+        "cardio": 7,
+        "saccade": 0,
+        "blink": 2,
+    }
+    picks_ch = ["MLF14-4504", "MRF14-4504"]
+    Epicks_ch = ["Fp1", "Fp2"]
 
+    ch_indx = [rawMEG.ch_names.index(ch) for ch in picks_ch]
+    Ech_indx = [rawEEG.ch_names.index(ch) for ch in Epicks_ch]
 
-fig.savefig(f"{FIG_DIR}/ica.svg", dpi=600, bbox_inches="tight")
+    pre_data = extract_raw_data(rawMEG, picks=ch_indx, tlim=(T_MIN, T_MAX))
+    pos_data = extract_raw_data(cleanMEG, picks=ch_indx, tlim=(T_MIN, T_MAX))
+    Epre_data = extract_raw_data(rawEEG, picks=Ech_indx, tlim=(T_MIN, T_MAX))
+    Epos_data = extract_raw_data(cleanEEG, picks=Ech_indx, tlim=(T_MIN, T_MAX))
+
+    fig = make_main_plot(
+        T_MIN,
+        T_MAX,
+        fontsize=FONT_SIZE,
+        ica=ica,
+        raw4plot=rawMEG_,
+        arti_data=artifacts,
+        colors=colors,
+        pre_data=pre_data,
+        pos_data=pos_data,
+        Epre_data=Epre_data,
+        Epos_data=Epos_data,
+        picks_ch=picks_ch,
+        Epicks_ch=Epicks_ch,
+    )
+
+    fig.savefig(f"{SAVE_DIR}/ica.svg", dpi=300, bbox_inches="tight", transparent=True)
+    fig.savefig(f"{SAVE_DIR}/ica.png", dpi=300, bbox_inches="tight", transparent=True)
 # %%

@@ -7,10 +7,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pyctf import dsopen
 from matplotlib import font_manager as fm
+from src import DataConfig
+from pathlib import Path
 
-DATA_DIR = "../BIN/action/HAD-MEEG-BIDS"
-RESULTS_DIR = "../HAD-MEEG_results"
-FONT_PATH = "resources/Helvetica.ttc"
+cfg = DataConfig()
+DATA_DIR = "/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/HAD-MEEG-BIDS"  # REFERING TO CTF BIDS
+SAVE_DIR = cfg.results_root / "basic-head"
+FONT_PATH = Path("resources") / "Helvetica.ttc"
+FONT_SIZE = 12
 ELECTRODES = ["nas", "lpa", "rpa"]
 N_PARTICIPANTS = 30
 SESSIONS_CONFIG = {
@@ -18,89 +22,16 @@ SESSIONS_CONFIG = {
         "ses-meg": 8,
     }
 }
+COLORMAP = "Spectral"
+cmap = plt.get_cmap(COLORMAP, 10)
+colors = [cmap(i / (10 - 1)) for i in range(10)]
+COLOR_MEG = colors[2]
+COLOR_EEG = colors[-3]
+fm.fontManager.addfont(FONT_PATH)
+plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
 
 
 # %%
-def analyze_head_movement(
-    data_dir: str,
-    results_dir: str,
-    n_participants: int,
-    sessions_config: Dict[int, Dict[str, int]],
-    electrodes: List[str],
-    font_path: Optional[str] = None,
-    palette: str = "Spectral",
-    fontsize: int = 12,
-) -> None:
-    """
-    Analyze head movement by loading sensor positions, computing movements, and plotting results.
-
-    Parameters
-    ----------
-    data_dir : str
-        Root directory containing MEG data files(need CTF.ds data).
-    results_dir : str
-        Directory where results will be saved.
-    n_participants : int
-        Number of participants.
-    sessions_config : Dict[int, Dict[str, int]]
-        Dictionary mapping subjects ranges to their session configurations.
-        Example: {range(1, 10): {'ses-ImageNet01': 2, 'ses-ImageNet02': 2}}
-    electrodes : List[str]
-        List of electrode names to consider.
-    font_path : Optional[str], default=None
-        Path to the font file to be used in plots.
-    palette : str, default='Spectral'
-        Color palette to use for plots.
-    fontsize : int, default=16
-        Font size to use in plots.
-
-    Returns
-    -------
-    None
-        The function saves plots and statistics to the specified directories.
-
-    Notes
-    -----
-    This function encapsulates the process of loading MEG sensor data, computing head movement
-    within and between sessions for multiple participants, and generating plots and statistics.
-    It follows the open/closed principle by allowing extension through parameters without modifying
-    the existing code structure.
-    """
-
-    # Set font and plot styles
-    if font_path:
-        fm.fontManager.addfont(font_path)
-        plt.rcParams["font.family"] = fm.FontProperties(fname=font_path).get_name()
-
-    # Constants and settings
-    palette_colors = sns.color_palette(palette=palette, n_colors=10)
-    colors = [palette_colors[1], palette_colors[-2]]
-
-    # Load sensor data
-    data_loader = SensorDataLoader(
-        root_dir=data_dir,
-        n_participants=n_participants,
-        sessions_config=sessions_config,
-        electrodes=electrodes,
-    )
-    sensor_data = data_loader.load_sensor_positions()
-    os.makedirs(f"{results_dir}/data", exist_ok=True)
-    sensor_data.to_csv(f"{results_dir}/data/MEG-head_motion.csv", index=False)
-
-    # Analyze head movement
-    analyzer = HeadMovementAnalyzer(
-        sensor_data=sensor_data,
-        electrodes=electrodes,
-        n_participants=n_participants,
-        results_dir=results_dir,
-        colors=colors,
-        fontsize=fontsize,
-    )
-    analyzer.compute_head_movement()
-    analyzer.plot_head_motion()
-    analyzer.print_motion_statistics()
-
-
 class SensorDataLoader:
     """
     Class to load and store sensor positions for participants.
@@ -480,56 +411,57 @@ class HeadMovementAnalyzer:
         return np.mean(distances)
 
     def plot_head_motion(self, figsize=(12, 3)) -> None:
-        """
-        Plot head motion using violin plots for within and between session movements.
+        fig, ax = plt.subplots(figsize=figsize, dpi=300)
 
-        Returns
-        -------
-        None
-            The function saves the plot to the specified results directory.
-        """
-        fig, ax = plt.subplots(figsize=figsize, dpi=600)
+        _plot_head_motion = self.head_motion[
+            self.head_motion["motion"] <= 2
+        ].reset_index(drop=True)
+        print(f"droped cols: \n{self.head_motion[self.head_motion['motion'] > 2]}")
         sns.violinplot(
-            data=self.head_motion,
+            data=_plot_head_motion,
             x="subjects",
             y="motion",
             hue="type",
-            # inner='point',
-            # inner_kws={"s": 0.5, "color": "grey", 'alpha': 0.4},
+            inner=None,
             ax=ax,
-            native_scale=True,
             linewidth=0,
             density_norm="width",
             palette=self.colors,
             legend=False,
+            native_scale=True,
+            cut=0,
         )
+        sns.boxplot(
+            data=_plot_head_motion,
+            x="subjects",
+            y="motion",
+            showcaps=True,
+            boxprops={
+                "facecolor": "dimgray",
+                "edgecolor": "dimgray",
+                "alpha": 0.6,
+                "linewidth": 0.8,
+            },
+            showfliers=False,  # 这里顺便关掉极端离群点的marker
+            whiskerprops={"linewidth": 1.0, "color": "dimgray"},
+            medianprops={"color": "lightgoldenrodyellow", "linewidth": 2.2},
+            width=0.15,
+            ax=ax,
+            native_scale=True,
+        )
+
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
-        ax.set_xlabel("Subject", fontsize=self.fontsize)
-        ax.set_ylabel("Head Motion (mm)", fontsize=self.fontsize)
+        ax.set_xlim(0, 31)
         ax.set_xticks(np.arange(1, self.n_participants + 1))
+        # ax.set_xticklabels(format(i, '02d') for i in range(1, self.n_participants + 1))
+        ax.set_ylim(0, 0.8)
+        ax.set_yticks(np.arange(0, 0.9, 0.4))
         ax.tick_params(axis="x", labelsize=self.fontsize - 2)
         ax.tick_params(axis="y", labelsize=self.fontsize - 2)
-        ax.set_xlim(0, self.n_participants + 1)
-        # ax.set_ylim(0, None)
-        # ax.legend_.remove()
-        # ax.legend(
-        # handles=[
-        #     Patch(color=self.colors[1], label='Between Session'),
-        #     Patch(color=self.colors[0], label='Within Session')
-        # ],
-        # loc='upper right',
-        # fontsize=self.fontsize-2
-        # )
+        ax.set_xlabel("Subject", fontsize=self.fontsize)
+        ax.set_ylabel("Head motion (mm)", fontsize=self.fontsize)
         plt.tight_layout()
-        os.makedirs(f"{self.results_dir}/figs", exist_ok=True)
-        plt.savefig(
-            f"{self.results_dir}/figs/head_motion.svg",
-            dpi=300,
-            bbox_inches="tight",
-            transparent=True,
-        )
-        plt.show()
         return fig
 
     def print_motion_statistics(self) -> None:
@@ -551,34 +483,101 @@ class HeadMovementAnalyzer:
         print(f"Between-session median: {between_median:.3f} mm")
 
 
-# %%
-data_loader = SensorDataLoader(
-    root_dir=DATA_DIR,
-    n_participants=N_PARTICIPANTS,
-    sessions_config=SESSIONS_CONFIG,
-    electrodes=ELECTRODES,
-)
-sensor_data = data_loader.load_sensor_positions()
-os.makedirs(f"{RESULTS_DIR}/data", exist_ok=True)
-sensor_data.to_csv(f"{RESULTS_DIR}/data/MEG-head_motion.csv", index=False)
-# %%
-sensor_data = pd.read_csv(f"{RESULTS_DIR}/data/MEG-head_motion.csv")
-fm.fontManager.addfont(FONT_PATH)
-plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
+def plot_head_motion(self, figsize=(12, 3)) -> None:
+    fig, ax = plt.subplots(figsize=figsize, dpi=300)
 
-palette = "Spectral"
-palette_colors = sns.color_palette(palette=palette, n_colors=10)
-colors = [palette_colors[1], palette_colors[-2]]
-fontsize = 20
-analyzer = HeadMovementAnalyzer(
-    sensor_data=sensor_data,
-    electrodes=ELECTRODES,
-    n_participants=N_PARTICIPANTS,
-    results_dir=RESULTS_DIR,
-    colors=colors,
-    fontsize=fontsize,
-)
-analyzer.compute_head_movement()
-analyzer.plot_head_motion()
-analyzer.print_motion_statistics()
+    # 过滤 motion
+    df = self.head_motion[self.head_motion["motion"] <= 2].reset_index(drop=True)
+    print(f"droped cols: \n{self.head_motion[self.head_motion['motion'] > 2]}")
+
+    subjects = sorted(df["subjects"].unique())
+    subj_to_idx = {s: i for i, s in enumerate(subjects)}
+    df = df.copy()
+    df["subj_idx"] = df["subjects"].map(subj_to_idx)
+
+    sns.barplot(
+        data=df,
+        x="subj_idx",
+        y="motion",
+        estimator=np.median,
+        errorbar=None,
+        width=0.6,
+        color=COLOR_MEG,
+        alpha=1,
+        ax=ax,
+        zorder=1,
+    )
+
+    rng = np.random.default_rng(0)
+    jitter = 0.1
+
+    for i, s in enumerate(subjects):
+        df_sub = df[df["subjects"] == s]
+
+        for _, row in df_sub.iterrows():
+            x_jitter = rng.uniform(-jitter, jitter)
+            x_val = i + x_jitter
+            y_val = row["motion"]
+            ax.scatter(
+                x_val,
+                y_val,
+                s=10,
+                alpha=0.6,
+                color="lightgray",
+                edgecolor="dimgray",
+                zorder=2,
+            )
+
+    ax.spines["right"].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.set_xlim(-0.5, self.n_participants - 0.5)
+    ax.set_xticks(np.arange(self.n_participants))
+    ax.set_xticklabels(np.arange(1, self.n_participants + 1))
+    ax.set_ylim(0, 0.8)
+    ax.set_yticks(np.arange(0, 0.9, 0.4))
+    ax.tick_params(axis="x", labelsize=self.fontsize - 2)
+    ax.tick_params(axis="y", labelsize=self.fontsize - 2)
+    ax.set_xlabel("Subject", fontsize=self.fontsize)
+    ax.set_ylabel("Head motion (mm)", fontsize=self.fontsize)
+    plt.tight_layout()
+    return fig
+
+
+# %%
+if __name__ == "__main__":
+    data_loader = SensorDataLoader(
+        root_dir=DATA_DIR,
+        n_participants=N_PARTICIPANTS,
+        sessions_config=SESSIONS_CONFIG,
+        electrodes=ELECTRODES,
+    )
+    sensor_data = data_loader.load_sensor_positions()
+    # sensor_data["subjects"] = sensor_data["subjects"].astype(int).astype(str).str.zfill(2)
+
+    cmap = plt.get_cmap(COLORMAP, 10)
+    colors = [cmap(i / (10 - 1)) for i in range(10)]
+    colors = [colors[2], colors[-3]]
+    fontsize = 20
+    analyzer = HeadMovementAnalyzer(
+        sensor_data=sensor_data,
+        electrodes=ELECTRODES,
+        n_participants=N_PARTICIPANTS,
+        results_dir=SAVE_DIR,
+        colors=colors,
+        fontsize=fontsize,
+    )
+    analyzer.compute_head_movement()
+    # fig = analyzer.plot_head_motion()
+    analyzer.print_motion_statistics()
+
+    sensor_data.to_csv(SAVE_DIR / "MEG-head_motion.csv", index=False)
+    # %%
+    fig = plot_head_motion(analyzer)
+    fig.savefig(
+        SAVE_DIR / "MEG-head_motion.png", dpi=300, bbox_inches="tight", transparent=True
+    )
+    fig.savefig(
+        SAVE_DIR / "MEG-head_motion.svg", dpi=300, bbox_inches="tight", transparent=True
+    )
+
 # %%

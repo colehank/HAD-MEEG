@@ -17,7 +17,7 @@ LOWPASS: float = 40.0
 SFREQ: float = 200.0
 
 
-def main() -> None:
+if __name__ == "__main__":
     cfg = config.DataConfig()
     epocher = Epocher(cfg)
     epocher.run(
@@ -31,7 +31,3 @@ def main() -> None:
         lowpass=LOWPASS,
         sfreq=SFREQ,
     )
-
-
-if __name__ == "__main__":
-    main()

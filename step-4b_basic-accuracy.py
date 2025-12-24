@@ -1,3 +1,4 @@
+# %%
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,11 +16,10 @@ from src import DataConfig
 config = DataConfig()
 DERI_EV_DIR = Path(config.derivatives_root) / "detailed_events"
 
-SAVE_DIR = Path("../HAD-MEEG_results")
-FIG_DIR = SAVE_DIR / "figs"
-FIG_DIR.mkdir(parents=True, exist_ok=True)
+SAVE_DIR = config.results_root / "basic-accuracy"
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
-FONT_SIZE: int = 18
+FONT_SIZE: int = 20
 FONT_PATH = Path("resources/Helvetica.ttc")
 
 COLORMAP = "Spectral"
@@ -27,11 +27,9 @@ cmap = plt.get_cmap(COLORMAP, 10)
 colors = [cmap(i / (10 - 1)) for i in range(10)]
 COLOR_MEG = colors[2]
 COLOR_EEG = colors[-3]
-
-
-# === Matplotlib / font setup ===
 fm.fontManager.addfont(str(FONT_PATH))
 plt.rcParams["font.family"] = fm.FontProperties(fname=str(FONT_PATH)).get_name()
+# %%
 
 
 def get_files(root_dir: Path) -> dict[str, Path]:
@@ -124,7 +122,6 @@ def extract_accuracy(files_dict: dict[str, Path]) -> pd.DataFrame:
 
 def plot_accuracy_violin_box(
     df: pd.DataFrame,
-    font_size: int = FONT_SIZE,
     color_meg: str | tuple = COLOR_MEG,
     color_eeg: str | tuple = COLOR_EEG,
 ) -> plt.Figure:
@@ -147,8 +144,6 @@ def plot_accuracy_violin_box(
     matplotlib.figure.Figure
         The generated figure.
     """
-    df_box = df[["sub", "acc"]].copy()
-
     fig, ax = plt.subplots(figsize=(12, 3), dpi=300)
 
     sns.violinplot(
@@ -163,10 +158,11 @@ def plot_accuracy_violin_box(
         density_norm="width",
         split=True,
         palette={"MEG": color_meg, "EEG": color_eeg},
+        cut=0,
     )
 
     sns.boxplot(
-        data=df_box,
+        data=df,
         x="sub",
         y="acc",
         showcaps=True,
@@ -181,29 +177,39 @@ def plot_accuracy_violin_box(
         medianprops={"color": "lightgoldenrodyellow", "linewidth": 2.2},
         width=0.15,
         ax=ax,
+        native_scale=True,
     )
 
-    ax.set_xlabel("Subject", fontsize=font_size)
-    ax.set_ylabel("Recognition Accuracy", fontsize=font_size)
-    ax.tick_params(axis="both", labelsize=font_size - 2)
+    # ax.set_xlabel("Subject", fontsize=font_size)
+    # ax.set_ylabel("Recognition Accuracy", fontsize=font_size)
+    # ax.tick_params(axis="both", labelsize=font_size - 2)
 
-    # Clean up spines
+    # # Clean up spines
+    # ax.spines["right"].set_visible(False)
+    # ax.spines["top"].set_visible(False)
+
+    # # Y axis limits and ticks
+    ax.set_ylim(0.55, 1.0)
+    ax.set_yticks([0.6, 0.8, 1.0])
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
-
-    # Y axis limits and ticks
-    ax.set_ylim(0.47, 1.0)
-    ax.set_yticks([0.6, 0.8, 1.0])
+    ax.set_xlabel("Subject", fontsize=FONT_SIZE)
+    ax.set_ylabel("Accuracy", fontsize=FONT_SIZE)
+    ax.set_xticks(np.arange(1, 32))
+    ax.tick_params(axis="x", labelsize=FONT_SIZE - 2)
+    ax.tick_params(axis="y", labelsize=FONT_SIZE - 2)
+    ax.set_xlim(0, 32)
+    plt.tight_layout()
 
     # Legend
     ax.legend(
         ncols=2,
         loc="lower right",
         frameon=False,
-        fontsize=font_size - 4,
+        fontsize=FONT_SIZE - 6,
         bbox_to_anchor=(1.01, -0.07),
-        handlelength=1.2,
-        columnspacing=0.5,
+        handlelength=1.6,
+        columnspacing=0.4,
         handletextpad=0.3,
     )
 
@@ -212,6 +218,7 @@ def plot_accuracy_violin_box(
     return fig
 
 
+# %%s
 if __name__ == "__main__":
     all_events = get_files(DERI_EV_DIR)
     acc = extract_accuracy(all_events)
@@ -228,22 +235,24 @@ if __name__ == "__main__":
     )
 
     df["modality"] = df["modality"].astype(str).str.upper().str.strip()
-    df["sub"] = df["sub"].astype(str)
+    df["sub"] = df["sub"].astype(int)
     df = df[df["modality"].isin(["EEG", "MEG"])]
-
+    df["acc"] = pd.to_numeric(df["acc"], errors="coerce")
+    df.to_csv(SAVE_DIR / "accuracy.csv", index=False)
+    # %%
     fig = plot_accuracy_violin_box(df)
-
-    acc.to_csv(SAVE_DIR / "accuracy.csv", index=False)
+    df.to_csv(SAVE_DIR / "accuracy.csv", index=False)
 
     fig.savefig(
-        FIG_DIR / "accuracy.svg",
+        SAVE_DIR / "accuracy.svg",
         dpi=300,
         bbox_inches="tight",
         transparent=True,
     )
     fig.savefig(
-        FIG_DIR / "accuracy.png",
+        SAVE_DIR / "accuracy.png",
         dpi=300,
         bbox_inches="tight",
         transparent=True,
     )
+# %%

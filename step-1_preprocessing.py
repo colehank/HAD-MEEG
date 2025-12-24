@@ -40,7 +40,7 @@ def load_manual_ica_labels(
     return False, None
 
 
-def main() -> None:
+if __name__ == "__main__":
     # Initialize data config and preprocessing pipeline
     cfg = DataConfig()
     all_bids = cfg.source_bids_list
@@ -93,7 +93,3 @@ def main() -> None:
 
     # Optional: remove temporary label file after successful processing
     # TEMP_ANNOTS_FILE.unlink(missing_ok=True)
-
-
-if __name__ == "__main__":
-    main()

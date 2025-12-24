@@ -5,7 +5,7 @@ This repository provides the codebase for preprocessing, validation, and visuali
 ## Installation
 Code is tested with **Python 3.11+**.
 
-This project uses [`uv`]((https://docs.astral.sh/uv/getting-started/installation/)) for Python dependency management.
+This analyse uses [`uv`]((https://docs.astral.sh/uv/getting-started/installation/)) for Python dependency management.
 
 ```bash
 git clone https://github.com/colehank/HAD-MEEG.git

@@ -16,34 +16,11 @@ from pydantic_settings import SettingsConfigDict
 
 
 class DataConfig(BaseSettings):
-    """Configuration for M/EEG BIDS dataset.
-
-    Parameters
-    ----------
-    bids_root : DirectoryPath
-        Path to the BIDS root directory.
-    derivatives_root : Optional[DirectoryPath], optional
-        Path to the derivatives directory. If None, defaults to `bids_root/derivatives`.
-    subjects : list[str], optional
-        List of subject IDs to include. If empty, will be auto-filled from BIDS structure.
-    sessions : list[Optional[str]], optional
-        List of session IDs to include. If empty, will be auto-filled from BIDS structure.
-    tasks : list[str], optional
-        List of task names to include. If empty, will be auto-filled from BIDS structure.
-    runs : list[str], optional
-        List of run numbers to include. If empty, will be auto-filled from BIDS structure.
-    datatypes : list[str], optional
-        List of data types to include (e.g., "meg", "eeg"). Defaults to ["meg", "eeg"].
-    meg_raw_extension : Optional[str], optional
-        File extension for MEG raw data files (e.g., ".fif"). Will be loaded from environment if not set.
-    eeg_raw_extension : Optional[str], optional
-        File extension for EEG raw data files (e.g., ".set"). Will be loaded from environment if not set.
-
-    Att
-    """
+    """Configuration for M/EEG BIDS dataset."""
 
     bids_root: DirectoryPath
     derivatives_root: DirectoryPath | None = None
+    results_root: DirectoryPath | None = None
 
     subjects: list[str] = Field(default_factory=list)
     sessions: list[str | None] = Field(default_factory=list)
@@ -73,6 +50,17 @@ class DataConfig(BaseSettings):
         if not bids_root:
             return None
         return Path(bids_root) / "derivatives"
+
+    @field_validator("results_root", mode="before")
+    @classmethod
+    def set_default_results_root(cls, v, info):
+        """If results_root is not set, default to bids_root../HAD-MEEG_results."""
+        if v is not None:
+            return v
+        bids_root = info.data.get("bids_root")
+        if not bids_root:
+            return None
+        return Path(bids_root).parent / "HAD-MEEG_results"
 
     @model_validator(mode="after")
     def auto_fill_entities(self):

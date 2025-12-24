@@ -1,23 +1,24 @@
 # %%
 import numpy as np
-from pathlib import Path
 from joblib import load, dump
 from src.utils import get_soi_picks
 from src.evo import EvokedSet
 from src.rsa import TimeRDM, RSA
 from loguru import logger
+from src import DataConfig
 
 # import matplotlib.pyplot as plt
 # %%
-EVO_DIR = Path("../HAD-MEEG_results/grand_evo")
-RES_DIR = Path("../HAD-MEEG_results/rsa")
+cfg = DataConfig()
+EVO_DIR = cfg.results_root / "evos" / "grand_evo"
+SAVE_DIR = cfg.results_root / "rsa"
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
+
 SOIS = ["O", "P", "C", "F", "T", "OT", "all"]  # (M/EEG) sensor of interests
 ROIS = ["EV", "VS", "DS", "LS"]  # (fMRI) regions of interest
 ROI_MAP = {"EV": "Early", "VS": "Ventral", "DS": "Dorsal", "LS": "Lateral"}
 N_ITER = 1000  # number of iterations for bootstrap
 ALPHA = 0.05  # significance level for confidence iterval
-
-RES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # %%
@@ -120,9 +121,9 @@ if __name__ == "__main__":
                 "eeg_corr": eeg_corr,
                 "eeg_sig": eeg_sig,
             }
-    dump(results, RES_DIR / "results.pkl")
+    dump(results, SAVE_DIR / "results.pkl")
     # %%
-    results = load(RES_DIR / "results.pkl")
+    results = load(SAVE_DIR / "results.pkl")
     for soi in SOIS:
         logger.info(f"Processing MEG-vs-EEG fusion for SOI: {soi}")
         meg_feat = get_class_feature(
@@ -149,5 +150,5 @@ if __name__ == "__main__":
             "meg_eeg_corr": meg_eeg_corr,
             "meg_eeg_sig": meg_eeg_sig,
         }
-    dump(results, RES_DIR / "results.pkl")
+    dump(results, SAVE_DIR / "results.pkl")
 # %%
