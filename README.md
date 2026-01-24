@@ -28,7 +28,7 @@ source .venv/bin/activate # On Windows: .venv\Scripts\activate
 # conda create -n had-meeg python=3.11
 # conda activate had-meeg
 
-pip install -r requirements_lock.txt
+pip install -r requirements.txt
 ```
 
 ## Configuration
