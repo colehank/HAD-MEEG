@@ -1,4 +1,10 @@
 # %%
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import os
 from typing import List, Dict, Optional, Any
 import numpy as np
@@ -8,7 +14,6 @@ import matplotlib.pyplot as plt
 from pyctf import dsopen
 from matplotlib import font_manager as fm
 from src import DataConfig, PlotConfig
-from pathlib import Path
 
 cfg_data = DataConfig()
 cfg_plot = PlotConfig()

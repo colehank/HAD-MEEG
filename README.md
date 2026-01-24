@@ -39,4 +39,8 @@ pip install -r requirements.txt
 
 2. Edit `.env` and set `MEEG_BIDS_ROOT` to the path of the `HAD-MEEG`'s root directory on your machine.  The `.env` file is loaded at runtime to locate the dataset.
 
-After this, you should be able to run all scripts in this project.
+After this, you should be able to run all analyses in `scripts/`.
+
+## Usage
+
+All analysis scripts are located in the `scripts/` directory. You can run them using `uv run scripts/step-*.py` or `python scripts/step-*.py` from project directory.

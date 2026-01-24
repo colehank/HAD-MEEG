@@ -1,9 +1,14 @@
 # %%
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import numpy as np
 import pandas as pd
 import nibabel as nib
 import scipy.io as sio
-from pathlib import Path
 from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from nilearn import plotting

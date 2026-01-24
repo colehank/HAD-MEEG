@@ -1,8 +1,13 @@
 # %%
 from __future__ import annotations
 
-from typing import Tuple
+import sys
+from pathlib import Path
 
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from typing import Tuple
 from src import Epocher, DataConfig, AnalyseConfig
 
 cfg_data = DataConfig()

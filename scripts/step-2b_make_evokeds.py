@@ -1,4 +1,10 @@
 # %%
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src import DataConfig, AnalyseConfig
 from src.evo import EpoToEvo
 from src.epo import concat_epochs
@@ -6,7 +12,6 @@ from joblib import Parallel, delayed, dump
 from tqdm_joblib import tqdm_joblib
 from tqdm.auto import tqdm
 import mne
-from pathlib import Path
 from loguru import logger
 
 cfg_data = DataConfig()
@@ -21,7 +26,7 @@ SUB_SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 # %%
 def read_epo(fp: str) -> mne.Epochs:
-    epo = mne.read_epochs(fp)
+    epo = mne.read_epochs(fp, verbose="ERROR")
     return epo
 
 

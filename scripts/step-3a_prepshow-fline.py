@@ -6,6 +6,12 @@ This script generates a 2x2 grid plot comparing PSD across all channels for:
 """
 
 # %%
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker

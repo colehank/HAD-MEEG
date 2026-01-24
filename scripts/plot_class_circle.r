@@ -8,6 +8,7 @@ script_dir <- dirname(sys.frame(1)$ofile)
 if (length(script_dir) == 0 || script_dir == "") {
   script_dir <- getwd()
 }
+script_dir <- dirname(script_dir)
 helvetica_font_path <- file.path(script_dir, "resources", "Helvetica.ttc")
 
 showtext_auto()

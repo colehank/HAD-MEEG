@@ -1,4 +1,10 @@
 # %%
+import sys
+from pathlib import Path
+
+# Add project root to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import numpy as np
 from joblib import load, dump
 from src.utils import get_soi_picks

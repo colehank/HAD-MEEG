@@ -15,6 +15,20 @@ from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
 
+def _get_project_root() -> Path:
+    """Find project root by looking for pyproject.toml."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "pyproject.toml").exists():
+            return current
+        current = current.parent
+    return Path.cwd()
+
+
+PROJECT_ROOT = _get_project_root()
+ENV_FILE = PROJECT_ROOT / ".env"
+
+
 class AnalyseConfig(BaseSettings):
     random_state: int = Field(default=42)
     use_cuda: bool = Field(default=False)
@@ -22,7 +36,7 @@ class AnalyseConfig(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="ANALYSE_",
-        env_file=".env",
+        env_file=ENV_FILE,
         case_sensitive=False,
         extra="ignore",
     )
@@ -35,7 +49,7 @@ class PlotConfig(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="PLOT_",
-        env_file=".env",
+        env_file=ENV_FILE,
         case_sensitive=False,
         extra="ignore",
     )
@@ -57,8 +71,8 @@ class DataConfig(BaseSettings):
     """Configuration for M/EEG BIDS dataset."""
 
     bids_root: DirectoryPath
-    derivatives_root: DirectoryPath | None = None
-    results_root: DirectoryPath | None = None
+    derivatives_root: Path | None = None
+    results_root: Path | None = None
 
     subjects: list[str] = Field(default_factory=list)
     sessions: list[str | None] = Field(default_factory=list)
@@ -71,7 +85,7 @@ class DataConfig(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="MEEG_",
-        env_file=".env",
+        env_file=ENV_FILE,
         case_sensitive=False,
         extra="ignore",
     )
@@ -81,24 +95,34 @@ class DataConfig(BaseSettings):
     @field_validator("derivatives_root", mode="before")
     @classmethod
     def set_default_derivatives_root(cls, v, info):
-        """If derivatives_root is not set, default to bids_root/derivatives."""
-        if v is not None:
-            return v
-        bids_root = info.data.get("bids_root")
-        if not bids_root:
-            return None
-        return Path(bids_root) / "derivatives"
+        """If derivatives_root is not set, default to bids_root/derivatives. Create if not exists."""
+        if v is None:
+            bids_root = info.data.get("bids_root")
+            if not bids_root:
+                return None
+            v = Path(bids_root) / "derivatives"
+        else:
+            v = Path(v)
+
+        # Create directory if it doesn't exist
+        v.mkdir(parents=True, exist_ok=True)
+        return v
 
     @field_validator("results_root", mode="before")
     @classmethod
     def set_default_results_root(cls, v, info):
-        """If results_root is not set, default to bids_root../HAD-MEEG_results."""
-        if v is not None:
-            return v
-        bids_root = info.data.get("bids_root")
-        if not bids_root:
-            return None
-        return Path(bids_root).parent / "HAD-MEEG_results"
+        """If results_root is not set, default to bids_root../HAD-MEEG_results. Create if not exists."""
+        if v is None:
+            bids_root = info.data.get("bids_root")
+            if not bids_root:
+                return None
+            v = Path(bids_root).parent / "HAD-MEEG_results"
+        else:
+            v = Path(v)
+
+        # Create directory if it doesn't exist
+        v.mkdir(parents=True, exist_ok=True)
+        return v
 
     @model_validator(mode="after")
     def auto_fill_entities(self):
@@ -142,6 +166,22 @@ class DataConfig(BaseSettings):
                             "preprocessed": str(prep),
                         },
                     )
+
+        # Handle empty rows case - create DataFrame with proper columns
+        if not rows:
+            return pd.DataFrame(
+                columns=[
+                    "subject",
+                    "session",
+                    "task",
+                    "run",
+                    "datatype",
+                    "raw",
+                    "preprocessed",
+                    "epochs",
+                ]
+            )
+
         df = pd.DataFrame(rows)
         df["epochs"] = df.apply(
             lambda row: str(
@@ -166,8 +206,6 @@ class DataConfig(BaseSettings):
                     fp = (
                         preproc_dir
                         / f"sub-{bids.subject}"
-                        / f"ses-{bids.session}"
-                        / bids.session
                         / f"{bids.basename}_preproc_{bids.session}.fif"
                     )
                     if fp.exists():
@@ -177,7 +215,7 @@ class DataConfig(BaseSettings):
     @cached_property
     def epoched(self) -> dict:
         to_return = {}
-        epo_dir = self.derivatives_root / "epoch"
+        epo_dir = self.derivatives_root / "epochs"
         for sub in self.subjects:
             to_return[sub] = {}
             if "meg" in self.source[sub].keys():
