@@ -61,7 +61,13 @@ class Epocher:
     ) -> dict[str, mne.Epochs]:
         """Run epoching for a single subject."""
         sub_epo: dict[str, list[mne.Epochs]] = {}
-        metadata = pd.read_csv(self.events_fps[sub])
+        meta_fp = self.events_fps[sub]
+        if meta_fp.suffix == ".csv":
+            metadata = pd.read_csv(meta_fp)
+        elif meta_fp.suffix == ".tsv":
+            metadata = pd.read_csv(meta_fp, sep="\t")
+        else:
+            raise ValueError(f"Unsupported metadata file format: {meta_fp.suffix}")
         preped_raws = self._prep_sub(
             sub, highpass=highpass, lowpass=lowpass, sfreq=sfreq
         )

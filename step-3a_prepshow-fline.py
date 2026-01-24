@@ -1,50 +1,77 @@
+"""Visualize power spectral density (PSD) comparison between raw and preprocessed MEG/EEG data.
+
+This script generates a 2x2 grid plot comparing PSD across all channels for:
+- Raw MEG data vs. preprocessed MEG data
+- Raw EEG data vs. preprocessed EEG data
+"""
+
 # %%
-from mne_bids import read_raw_bids
-import mne
-from mne.io import BaseRaw
-import numpy as np
-from src import DataConfig
 import matplotlib.cm as cm
-from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
-from matplotlib import font_manager as fm
 import matplotlib.ticker as ticker
-from pathlib import Path
+import mne
+import numpy as np
+from matplotlib import font_manager as fm
+from matplotlib.gridspec import GridSpec
+from mne.io import BaseRaw
+from mne_bids import read_raw_bids
+from loguru import logger
+from src import DataConfig, PlotConfig
 
-cfg = DataConfig()
-SUB = "01"
-SES = "action"
-RUN = "01"
+# Configuration
+cfg_data = DataConfig()
+cfg_plot = PlotConfig()
 
-ROOT = cfg.bids_root
+subject = "01"
+session = "action"
+run = "01"
 
-SAVE_DIR = cfg.results_root / "prepshow-fline"
-SAVE_DIR.mkdir(parents=True, exist_ok=True)
+# Output configuration
+save_dir = cfg_data.results_root / "prepshow-fline"
+save_dir.mkdir(parents=True, exist_ok=True)
 
-FONTSIZE = 12
-COLORMAP = "Spectral"
-NCOLOR = 290  # > nchan
-FONT_PATH = Path("resources") / "Helvetica.ttc"
-
+# Visualization constants
+N_COLORS = 290  # Number of colors in colormap (should exceed number of channels)
+ALPHA = 0.4  # Transparency for channel lines
+LINEWIDTH = 0.1  # Line width for channel plots
+FREQ_MIN = 0.1  # Minimum frequency for PSD plot (Hz)
+FREQ_MAX = 110  # Maximum frequency for PSD plot (Hz)
+PSD_MIN = -10  # Minimum PSD value for y-axis (dB)
+PSD_MAX = 40  # Maximum PSD value for y-axis (dB)
+FONTSIZE = cfg_plot.font_size
+FONT_PATH = cfg_plot.font_path
 fm.fontManager.addfont(FONT_PATH)
 plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
+# Setup font
 
 
 # %%
-def align_raw(
-    raw: BaseRaw,
-    paras: dict[str, float],
-) -> BaseRaw:
+# Utility functions
+def align_raw(raw: BaseRaw, params: dict[str, float]) -> BaseRaw:
+    """Align raw data to match preprocessing parameters.
+
+    Args:
+        raw: Raw MEG/EEG data object.
+        params: Dictionary containing alignment parameters:
+            - sfreq: Target sampling frequency (Hz)
+            - hfreq: High-pass filter frequency (Hz)
+            - lfreq: Low-pass filter frequency (Hz)
+
+    Returns:
+        Aligned raw data with matched sampling rate and frequency band.
+    """
     raw = raw.copy().load_data()
 
+    # Select appropriate channel type
     dtype = "meg" if "meg" in raw else "eeg" if "eeg" in raw else None
     if dtype == "meg":
         raw = raw.pick_types(meg="mag", ref_meg=False)
     elif dtype == "eeg":
         raw = raw.pick_types(eeg=True)
 
-    raw.resample(paras["sfreq"])
-    raw.filter(paras["hfreq"], paras["lfreq"])
+    # Apply resampling and filtering
+    raw.resample(params["sfreq"])
+    raw.filter(params["hfreq"], params["lfreq"])
 
     return raw
 
@@ -55,134 +82,151 @@ def plot_psd_all_channels(
     colors: list,
     alpha: float = 0.15,
     linewidth: float = 0.5,
-):
+) -> None:
+    """Plot PSD for all channels with whitening normalization.
+
+    Args:
+        psd: Computed power spectral density object.
+        ax: Matplotlib axes to plot on.
+        colors: List of colors for each channel.
+        alpha: Transparency level for channel lines (0-1).
+        linewidth: Width of channel lines.
+    """
     psd_data = psd.get_data()
     freqs = psd.freqs
 
-    psd_data_db = 10 * np.log10(psd_data)  # PSD -> dB (10 * log10(PSD))
-    psd_data_db_mean = np.mean(psd_data_db, axis=1, keepdims=True)
-    psd_data_db -= psd_data_db_mean  # whitening
+    # Convert to dB scale
+    psd_data_db = 10 * np.log10(psd_data)
 
+    # Whiten by removing channel-wise mean
+    psd_data_db_mean = np.mean(psd_data_db, axis=1, keepdims=True)
+    psd_data_db -= psd_data_db_mean
+
+    # Plot each channel
     for i in range(psd_data_db.shape[0]):
         ax.plot(
-            freqs, psd_data_db[i, :], color=colors[i], alpha=alpha, linewidth=linewidth
+            freqs,
+            psd_data_db[i, :],
+            color=colors[i],
+            alpha=alpha,
+            linewidth=linewidth,
         )
 
 
 # %%
+# Main execution
 if __name__ == "__main__":
-    rawMEG = read_raw_bids(cfg.source[SUB]["meg"][int(RUN) - 1])
-    rawEEG = read_raw_bids(cfg.source[SUB]["eeg"][int(RUN) - 1])
+    # Load raw and preprocessed data
+    run_idx = int(run) - 1
+    raw_meg = read_raw_bids(cfg_data.source[subject]["meg"][run_idx])
+    raw_eeg = read_raw_bids(cfg_data.source[subject]["eeg"][run_idx])
+    logger.info("Loaded raw MEG and EEG data.")
+    clean_meg = mne.io.read_raw(cfg_data.preprocessed[subject]["meg"][run_idx])
+    clean_eeg = mne.io.read_raw(cfg_data.preprocessed[subject]["eeg"][run_idx])
 
-    cleanMEG = mne.io.read_raw(cfg.preprocessed[SUB]["meg"][int(RUN) - 1])
-    cleanEEG = mne.io.read_raw(cfg.preprocessed[SUB]["eeg"][int(RUN) - 1])
-    # %% align MEG/EEG's sampling frequency, band pass for comparison and compute PSD
-    paras = {
-        "lfreq": cleanMEG.info["lowpass"],
-        "hfreq": cleanMEG.info["highpass"],
-        "sfreq": cleanMEG.info["sfreq"],
+    # Align raw data to match preprocessing parameters
+    align_params = {
+        "lfreq": clean_meg.info["lowpass"],
+        "hfreq": clean_meg.info["highpass"],
+        "sfreq": clean_meg.info["sfreq"],
     }
+    logger.info("Aligned raw MEG and EEG data to match preprocessing parameters.")
+    raw_meg = align_raw(raw_meg, align_params)
+    raw_eeg = align_raw(raw_eeg, align_params)
 
-    rawMEG = align_raw(rawMEG, paras)
-    rawEEG = align_raw(rawEEG, paras)
+    # Compute power spectral density
+    raw_psd_meg = raw_meg.compute_psd()
+    raw_psd_eeg = raw_eeg.compute_psd()
+    clean_psd_meg = clean_meg.compute_psd()
+    clean_psd_eeg = clean_eeg.compute_psd()
 
-    raw_psdMEG = rawMEG.compute_psd()
-    raw_psdEEG = rawEEG.compute_psd()
+    # Setup colormaps for visualization
+    cmap_raw = cm.get_cmap("Spectral_r", N_COLORS)
+    cmap_clean = cm.get_cmap("Spectral", N_COLORS)
+    colors_raw = [cmap_raw(i / (N_COLORS - 1)) for i in range(N_COLORS)]
+    colors_clean = [cmap_clean(i / (N_COLORS - 1)) for i in range(N_COLORS)]
 
-    clean_psdMEG = cleanMEG.compute_psd()
-    clean_psdEEG = cleanEEG.compute_psd()
-    # %% plot PSD
-    alpha = 0.4
-    linewidth = 0.1
-    cmap_raw = cm.get_cmap("Spectral_r", NCOLOR)
-    cmap_clean = cm.get_cmap("Spectral", NCOLOR)
-    colors_raw = [cmap_raw(i / (NCOLOR - 1)) for i in range(NCOLOR)]
-    colors_clean = [cmap_clean(i / (NCOLOR - 1)) for i in range(NCOLOR)]
-
-    formatter = ticker.FuncFormatter(
+    # Create custom formatter for x-axis ticks
+    freq_formatter = ticker.FuncFormatter(
         lambda x, _: f"{x:.1f}" if x == 0.1 else f"{int(x)}"
     )
-
+    logger.info("Plotting.")
+    # Create figure with 2x2 grid layout
     plt.close("all")
     fig = plt.figure(figsize=(12, 3), dpi=300)
 
     gs = GridSpec(2, 2)
-    ax3 = fig.add_subplot(gs[1:, :1])  # MEG cleaned
-    ax4 = fig.add_subplot(gs[1:, 1:])  # EEG cleaned
-    ax1 = fig.add_subplot(gs[:1, :1], sharex=ax3, sharey=ax3)  # MEG raw
-    ax2 = fig.add_subplot(gs[:1, 1:], sharex=ax4, sharey=ax4)  # EEG raw
+    ax3 = fig.add_subplot(gs[1:, :1])  # Bottom-left: MEG preprocessed
+    ax4 = fig.add_subplot(gs[1:, 1:])  # Bottom-right: EEG preprocessed
+    ax1 = fig.add_subplot(gs[:1, :1], sharex=ax3, sharey=ax3)  # Top-left: MEG raw
+    ax2 = fig.add_subplot(gs[:1, 1:], sharex=ax4, sharey=ax4)  # Top-right: EEG raw
 
+    # Plot PSD for all channels (raw data uses reversed colormap, clean uses normal)
     plot_psd_all_channels(
-        raw_psdMEG, ax=ax1, colors=colors_raw, alpha=alpha, linewidth=linewidth
+        raw_psd_meg, ax=ax1, colors=colors_raw, alpha=ALPHA, linewidth=LINEWIDTH
     )
     plot_psd_all_channels(
-        raw_psdEEG, ax=ax2, colors=colors_raw, alpha=alpha, linewidth=linewidth
+        raw_psd_eeg, ax=ax2, colors=colors_raw, alpha=ALPHA, linewidth=LINEWIDTH
     )
     plot_psd_all_channels(
-        clean_psdMEG, ax=ax3, colors=colors_raw, alpha=alpha, linewidth=linewidth
+        clean_psd_meg, ax=ax3, colors=colors_clean, alpha=ALPHA, linewidth=LINEWIDTH
     )
     plot_psd_all_channels(
-        clean_psdEEG, ax=ax4, colors=colors_raw, alpha=alpha, linewidth=linewidth
+        clean_psd_eeg, ax=ax4, colors=colors_clean, alpha=ALPHA, linewidth=LINEWIDTH
     )
 
+    # Configure axes appearance
     for ax in [ax1, ax2, ax3, ax4]:
-        ax.set_xlim(0.1, 110)
+        ax.set_xlim(FREQ_MIN, FREQ_MAX)
         ax.set_xticks([0.1, 20, 40, 60, 80, 100])
-        ax.set_ylim(-10, 40)
-        ax.xaxis.set_major_formatter(formatter)
+        ax.set_ylim(PSD_MIN, PSD_MAX)
+        ax.xaxis.set_major_formatter(freq_formatter)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.tick_params(axis="both", labelsize=FONTSIZE - 2)
 
+        # Hide x-axis for top row
         if ax in [ax1, ax2]:
             ax.spines["bottom"].set_visible(False)
             ax.get_xaxis().set_visible(False)
+
+        # Add x-label for bottom row
         if ax in [ax3, ax4]:
             ax.set_xlabel("Frequency (Hz)", fontsize=FONTSIZE)
+
+        # Add y-labels
         if ax in [ax1, ax3]:
             ax.set_ylabel(r"fT$^2$/Hz (dB)", fontsize=FONTSIZE)
         if ax in [ax2, ax4]:
             ax.set_ylabel(r"$\mu$V$^2$/Hz (dB)", labelpad=0, fontsize=FONTSIZE)
 
+    # Add panel labels
     label_font = FONTSIZE + 2
-    ax1.text(
-        0.95,
-        0.95,
-        "MEG-raw",
-        transform=ax1.transAxes,
-        fontsize=label_font,
-        verticalalignment="top",
-        horizontalalignment="right",
+    label_params = {
+        "transform": ax1.transAxes,
+        "fontsize": label_font,
+        "verticalalignment": "top",
+        "horizontalalignment": "right",
+    }
+
+    ax1.text(0.95, 0.95, "MEG-raw", **label_params)
+    ax2.text(0.95, 0.95, "EEG-raw", **label_params)
+    ax3.text(0.95, 0.95, "MEG-cleaned", **label_params)
+    ax4.text(0.95, 0.95, "EEG-cleaned", **label_params)
+
+    # Save figure
+    plt.show()
+    fig.savefig(
+        save_dir / "fline.svg",
+        dpi=300,
+        bbox_inches="tight",
+        transparent=True,
     )
-    ax2.text(
-        0.95,
-        0.95,
-        "EEG-raw",
-        transform=ax2.transAxes,
-        fontsize=label_font,
-        verticalalignment="top",
-        horizontalalignment="right",
-    )
-    ax3.text(
-        0.95,
-        0.95,
-        "MEG-cleaned",
-        transform=ax3.transAxes,
-        fontsize=label_font,
-        verticalalignment="top",
-        horizontalalignment="right",
-    )
-    ax4.text(
-        0.95,
-        0.95,
-        "EEG-cleaned",
-        transform=ax4.transAxes,
-        fontsize=label_font,
-        verticalalignment="top",
-        horizontalalignment="right",
+    fig.savefig(
+        save_dir / "fline.png",
+        dpi=300,
+        bbox_inches="tight",
+        transparent=True,
     )
 
-    plt.show()
-    fig.savefig(f"{SAVE_DIR}/fline.svg", dpi=300, bbox_inches="tight", transparent=True)
-    fig.savefig(f"{SAVE_DIR}/fline.png", dpi=300, bbox_inches="tight", transparent=True)
 # %%

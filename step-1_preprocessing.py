@@ -2,14 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
-
-from src import DataConfig, PrepPipe
+from src import DataConfig, PrepPipe, AnalyseConfig
 from src.prep import run_ica_app
 
-N_JOBS: int = 8
-RANDOM_STATE: int = 42
-USE_CUDA: bool = True
-TEMP_ANNOTS_FILE = Path("./ica_labels.json")  # Auto-generated ICA label file
+cfg_data = DataConfig()
+cfg_anal = AnalyseConfig()
+
+ALL_BIDS = cfg_data.source_bids_list
+N_JOBS: int = cfg_anal.n_jobs
+RANDOM_STATE: int = cfg_anal.random_state
+USE_CUDA: bool = cfg_anal.use_cuda
+TEMP_ANNOTS_FILE = Path(
+    "./ica_labels.json"
+)  # Automatic generated ICA label in following steps
 
 
 def load_manual_ica_labels(
@@ -42,11 +47,8 @@ def load_manual_ica_labels(
 
 if __name__ == "__main__":
     # Initialize data config and preprocessing pipeline
-    cfg = DataConfig()
-    all_bids = cfg.source_bids_list
-
     batch_pipe = PrepPipe(
-        bids_list=all_bids,
+        bids_list=ALL_BIDS,
         use_cuda=USE_CUDA,
         n_jobs=N_JOBS,
         random_state=RANDOM_STATE,
@@ -55,10 +57,10 @@ if __name__ == "__main__":
     # Try to load existing ICA labels (if any)
     manual_checked, manual_ica_labels = load_manual_ica_labels(
         TEMP_ANNOTS_FILE,
-        all_bids,
+        ALL_BIDS,
     )
 
-    # Step 1: Preprocessing before manual ICA labeling (skip ICA computation)
+    # Step 1: Preprocessing before manual ICA labeling (skip ICA regression)
     if not manual_checked:
         batch_pipe.run(
             manual_ica_checked=False,
@@ -69,12 +71,12 @@ if __name__ == "__main__":
     if not manual_checked:
         run_ica_app(
             process_file=TEMP_ANNOTS_FILE,
-            bids_list=all_bids,
+            bids_list=ALL_BIDS,
         )
         # Reload labels after manual inspection
         manual_checked, manual_ica_labels = load_manual_ica_labels(
             TEMP_ANNOTS_FILE,
-            all_bids,
+            ALL_BIDS,
         )
         if not manual_checked:
             raise RuntimeError(
@@ -90,6 +92,3 @@ if __name__ == "__main__":
         manual_labels=manual_ica_labels,
         regress=True,  # Regress artifact ICs from raw data
     )
-
-    # Optional: remove temporary label file after successful processing
-    # TEMP_ANNOTS_FILE.unlink(missing_ok=True)

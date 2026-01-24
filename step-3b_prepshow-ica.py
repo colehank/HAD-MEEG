@@ -7,24 +7,23 @@ import seaborn as sns
 from matplotlib.gridspec import GridSpec
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
-from src import DataConfig
+from src import DataConfig, PlotConfig
 from src.viz.utils import get_2d_pos
-from pathlib import Path
 
-cfg = DataConfig()
+cfg_data = DataConfig()
+cfg_plot = PlotConfig()
 SUB = "02"
 SES = "action"
 RUN = "02"
 T_MIN = 50
 T_MAX = 65
 
-ROOT = cfg.bids_root
-
-SAVE_DIR = cfg.results_root / "prepshow-ica"
-
-FONT_PATH = Path("resources") / "Helvetica.ttc"
-FONT_SIZE = 12
+ROOT = cfg_data.bids_root
+SAVE_DIR = cfg_data.results_root / "prepshow-ica"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
+
+FONT_PATH = cfg_plot.font_path
+FONT_SIZE = cfg_plot.font_size
 fm.fontManager.addfont(FONT_PATH)
 plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
 
@@ -225,11 +224,11 @@ if __name__ == "__main__":
     palette = sns.color_palette(palette="tab20", n_colors=20, desat=1)
     colors = [palette[2], palette[6], palette[4]]
     # %% initialize data
-    rawMEG = read_raw_bids(cfg.source[SUB]["meg"][int(RUN) - 1])
-    rawEEG = read_raw_bids(cfg.source[SUB]["eeg"][int(RUN) - 1])
+    rawMEG = read_raw_bids(cfg_data.source[SUB]["meg"][int(RUN) - 1])
+    rawEEG = read_raw_bids(cfg_data.source[SUB]["eeg"][int(RUN) - 1])
 
-    cleanMEG = mne.io.read_raw(cfg.preprocessed[SUB]["meg"][int(RUN) - 1])
-    cleanEEG = mne.io.read_raw(cfg.preprocessed[SUB]["eeg"][int(RUN) - 1])
+    cleanMEG = mne.io.read_raw(cfg_data.preprocessed[SUB]["meg"][int(RUN) - 1])
+    cleanEEG = mne.io.read_raw(cfg_data.preprocessed[SUB]["eeg"][int(RUN) - 1])
     # %% align MEG/EEG's sampling frequency, band pass for comparison and compute PSD
     paras = {
         "lfreq": cleanMEG.info["lowpass"],

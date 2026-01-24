@@ -14,7 +14,7 @@ showtext_auto()
 font_add("Helvetica", helvetica_font_path)
 
 plot_had_dendrogram <- function(
-  had_file         = "resources/had.csv",
+  had_file         = file.path(script_dir, "resources", "had-class.csv"),
 
   root_label_size  = 12,  # HAD
   super_label_size = 6,   # superclass
@@ -37,8 +37,8 @@ plot_had_dendrogram <- function(
   edge_alpha       = 0.3,
 
   edge_linewidth   = 0.5,
-  label_distance   = 1.05,  # 标签距离节点的倍数
-  plot_margin      = 20,     # 图边距（mm）
+  label_distance   = 1.05,
+  plot_margin      = 20,
 
   out_file         = "had_dendrogram.png",
   width            = 12,
@@ -68,7 +68,7 @@ plot_had_dendrogram <- function(
     arrange(superclass_level0) %>%
     left_join(class_counts, by = "superclass_level0") %>%
     mutate(
-      id          = row_number() + 1L,   # 从 2 开始编号
+      id          = row_number() + 1L,
       node_name   = superclass_level0,
       node_branch = superclass_level0,
       leaf        = FALSE
@@ -156,7 +156,6 @@ plot_had_dendrogram <- function(
     use_super_node_color_map <- FALSE
   }
 
-  # ===== 处理 class 节点颜色映射 =====
   if (is.list(class_node_color) && !is.null(names(class_node_color))) {
     map_color <- function(name) {
       if (name %in% names(class_node_color)) {
@@ -180,10 +179,8 @@ plot_had_dendrogram <- function(
     use_class_node_color_map <- FALSE
   }
 
-  # ===== 同步 super_node_color 到下游 class 节点 =====
-  # 如果设置了 super_node_color，将其颜色应用到对应的下游 class 节点
+
   if (use_super_node_color_map) {
-    # 创建颜色映射函数
     map_super_color <- function(branch) {
       if (branch %in% names(super_node_color)) {
         return(super_node_color[[branch]])
@@ -233,8 +230,7 @@ plot_had_dendrogram <- function(
     pull(node_branch)
 
   pal <- setNames(hue_pal()(length(branches)), branches)
-  pal <- c("root" = "#f39c12", pal)  # 给 root 一个固定颜色
-
+  pal <- c("root" = "#f39c12", pal)
   if (root_node_color != "auto") {
     pal["root"] <- root_node_color
   }
@@ -271,7 +267,6 @@ plot_had_dendrogram <- function(
 
 
   p <- ggraph(activity_graph, layout = "dendrogram", circular = TRUE) +
-    # 边
     geom_edge_diagonal(
       aes(color = node1.node_branch),
       alpha     = edge_alpha,
@@ -344,7 +339,6 @@ plot_had_dendrogram <- function(
       }
     } +
 
-    # 叶子：class_name（未使用自定义颜色、未继承颜色的）
     geom_node_text(
       aes(
         x      = x * label_distance,
@@ -458,10 +452,10 @@ plot_had_dendrogram <- function(
     bg     = "transparent"
   )
 
-  cat("图形已保存至:", out_file, "\n")
-  cat("- 节点总数:", nrow(nodes), "\n")
-  cat("- 大类数量:", nrow(super_nodes), "\n")
-  cat("- 叶子节点:", nrow(leaf_nodes), "\n")
+  cat("fig save to:", out_file, "\n")
+  cat("- N_NODE:", nrow(nodes), "\n")
+  cat("- N_SUPER:", nrow(super_nodes), "\n")
+  cat("- N_LEAF:", nrow(leaf_nodes), "\n")
 
   invisible(p)
 }
@@ -495,6 +489,6 @@ plot_had_dendrogram(
   edge_linewidth   = 0.4,
   label_distance   = 1.05,
   plot_margin      = 50,
-  out_file         = "/Users/zgh/Desktop/workingdir/HAD-test/had_class.png",
+  out_file         = file.path(script_dir, "resources", "had_class.png"),
   dpi=250
 )

@@ -136,9 +136,9 @@ def plot_cebra_label_meeg(
         label = ax.yaxis.get_label()
         label.set_rotation_mode("anchor")
         label.set_verticalalignment("top")
-        ax.yaxis.set_label_coords(-0.21, 0.5)  # align ylabel position
+        ax.yaxis.set_label_coords(-0.27, 0.5)  # align ylabel position
 
-    cax = axes[0].inset_axes([0.8, 0.98, 0.15, 0.05])  # x, y, width, height
+    cax = axes[0].inset_axes([0.8, 0.4, 0.15, 0.05])  # x, y, width, height
     cbar = fig.colorbar(sc, cax=cax, orientation="horizontal")
     cbar.set_label("Time labels (s)", fontsize=fontsize)
     sc.set_clim(0, 2)

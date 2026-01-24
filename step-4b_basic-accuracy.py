@@ -255,4 +255,15 @@ if __name__ == "__main__":
         bbox_inches="tight",
         transparent=True,
     )
+    # %%
+    for modality in ["MEG", "EEG"]:
+        mod_data = df[df["modality"] == modality]
+        mean_acc = mod_data["acc"].mean()
+        std_acc = mod_data["acc"].std()
+        print(f"{modality} accuracy: {mean_acc * 100:.2f}% ± {std_acc * 100:.2f}%")
+
+    all_acc = df["acc"]
+    mean_acc = all_acc.mean()
+    std_acc = all_acc.std()
+    print(f"Overall accuracy: {mean_acc * 100:.2f}% ± {std_acc * 100:.2f}%")
 # %%

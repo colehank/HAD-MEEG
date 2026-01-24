@@ -1,5 +1,5 @@
 # %%
-from src import DataConfig
+from src import DataConfig, AnalyseConfig
 from src.evo import EpoToEvo
 from src.epo import concat_epochs
 from joblib import Parallel, delayed, dump
@@ -7,9 +7,12 @@ from tqdm_joblib import tqdm_joblib
 from tqdm.auto import tqdm
 import mne
 from pathlib import Path
+from loguru import logger
 
-cfg = DataConfig()
-SAVE_DIR = cfg.results_root / "evos"
+cfg_data = DataConfig()
+cfg_anal = AnalyseConfig()
+N_JOBS = cfg_anal.n_jobs
+SAVE_DIR = cfg_data.results_root / "evos"
 GRAND_SAVE_DIR = SAVE_DIR / "grand_evo"
 SUB_SAVE_DIR = SAVE_DIR / "sub_evo"
 GRAND_SAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -57,9 +60,15 @@ def avg_evo_by_meta(
 
 # %%
 if __name__ == "__main__":
-    fp_meg_epos = cfg.source_df.query("datatype == 'meg'")["epochs"].unique().tolist()
-    fp_eeg_epos = cfg.source_df.query("datatype == 'eeg'")["epochs"].unique().tolist()
+    fp_meg_epos = (
+        cfg_data.source_df.query("datatype == 'meg'")["epochs"].unique().tolist()
+    )
+    fp_eeg_epos = (
+        cfg_data.source_df.query("datatype == 'eeg'")["epochs"].unique().tolist()
+    )
     # %%
+    logger.info("Reading, concatenating and averaging epochs ")
+
     eeg_epos = read_epos(fp_eeg_epos, n_jobs=10)
     eeg_epo = concat_epos(eeg_epos, align_head=False, n_jobs=10)
     eeg_evo = avg_evo_by_meta(
@@ -78,7 +87,7 @@ if __name__ == "__main__":
     del eeg_epos
     del eeg_epo
     del eeg_evo
-    # %%
+
     meg_epos = read_epos(fp_meg_epos, n_jobs=10)
     meg_epo = concat_epos(meg_epos, align_head=True, n_jobs=10)
     meg_evo = avg_evo_by_meta(
@@ -98,6 +107,7 @@ if __name__ == "__main__":
     del meg_epo
     del meg_evo
     # %%
+    logger.info("Processing subject-wise evoked data.")
     for fp in tqdm(fp_eeg_epos + fp_meg_epos):
         fp = Path(fp)
         fn = fp.name

@@ -15,6 +15,44 @@ from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
 
+class AnalyseConfig(BaseSettings):
+    random_state: int = Field(default=42)
+    use_cuda: bool = Field(default=False)
+    n_jobs: int = Field(default=1)
+
+    model_config = SettingsConfigDict(
+        env_prefix="ANALYSE_",
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+
+class PlotConfig(BaseSettings):
+    font_size: int = Field(default=12)
+    font_file: str = Field(default="Helvetica.ttc")
+    colormap: str = Field(default="Spectral")
+
+    model_config = SettingsConfigDict(
+        env_prefix="PLOT_",
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    @cached_property
+    def font_path(self) -> Path:
+        return Path("resources") / "font" / self.font_file
+
+    @cached_property
+    def colors(self) -> dict[tuple]:
+        import matplotlib
+
+        cmap = matplotlib.colormaps.get_cmap(self.colormap)
+        colors = [cmap(i / (10 - 1)) for i in range(10)]
+        return {"meg": colors[2], "eeg": colors[-3]}
+
+
 class DataConfig(BaseSettings):
     """Configuration for M/EEG BIDS dataset."""
 

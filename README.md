@@ -1,6 +1,7 @@
 # HAD-MEEG: Human Action Dataset of Magnetoencephalography and Electroencephalography
 
 This repository provides the codebase for preprocessing, validation, and visualization associated with the *[A large-scale MEG and EEG dataset for human action recognition](https://reqbin.com/)*.
+![Pipeline Diagram](resources/overview.png)
 
 ## Installation
 Code is tested with **Python 3.11+**.
@@ -32,8 +33,10 @@ pip install -r requirements_lock.txt
 
 ## Configuration
 
+1. Download `HAD-MEEG` from OpenNeuro [dsxxxxxx]()
+
 1. Rename `.env_example` to  `.env`.
 
-2. Edit `.env` and set `MEEG_BIDS_ROOT` to the path of the HAD-MEEG's BIDS root directory on your machine.  The `.env` file is loaded at runtime to locate the dataset.
+2. Edit `.env` and set `MEEG_BIDS_ROOT` to the path of the `HAD-MEEG`'s root directory on your machine.  The `.env` file is loaded at runtime to locate the dataset.
 
 After this, you should be able to run all scripts in this project.

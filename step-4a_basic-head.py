@@ -7,16 +7,21 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pyctf import dsopen
 from matplotlib import font_manager as fm
-from src import DataConfig
+from src import DataConfig, PlotConfig
 from pathlib import Path
 
-cfg = DataConfig()
-DATA_DIR = "/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/HAD-MEEG-BIDS"  # REFERING TO CTF BIDS
-SAVE_DIR = cfg.results_root / "basic-head"
-FONT_PATH = Path("resources") / "Helvetica.ttc"
-FONT_SIZE = 12
+cfg_data = DataConfig()
+cfg_plot = PlotConfig()
+DATA_DIR = Path(
+    "/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/HAD-MEEG-BIDS"
+)  # REFERING TO CTF BIDS
+SAVE_DIR = cfg_data.results_root / "basic-head"
+SAVE_DIR.mkdir(parents=True, exist_ok=True)
+
+FONT_PATH = cfg_plot.font_path
+FONT_SIZE = cfg_plot.font_size
 ELECTRODES = ["nas", "lpa", "rpa"]
-N_PARTICIPANTS = 30
+N_PARTICIPANTS = cfg_data.source_df.query("datatype == 'meg'")["subject"].nunique()
 SESSIONS_CONFIG = {
     range(1, 31): {
         "ses-meg": 8,
@@ -476,18 +481,24 @@ class HeadMovementAnalyzer:
         within_motion = self.head_motion[self.head_motion["type"] == "within-session"]
         between_motion = self.head_motion[self.head_motion["type"] == "between-session"]
 
-        within_median = within_motion.groupby("subjects")["motion"].mean().median()
-        between_median = between_motion.groupby("subjects")["motion"].mean().median()
+        within_sub = within_motion.groupby("subjects")["motion"].mean()
+        between_sub = between_motion.groupby("subjects")["motion"].mean()
 
-        print(f"Within-session median: {within_median:.3f} mm")
-        print(f"Between-session median: {between_median:.3f} mm")
+        print(
+            f"Within-session: median {within_sub.median():.3f} mm, mean {within_sub.mean():.3f} mm, std {within_sub.std():.3f} mm"
+        )
+        print(
+            f"Between-session: median {between_sub.median():.3f} mm, mean {between_sub.mean():.3f} mm, std {between_sub.std():.3f} mm"
+        )
 
 
 def plot_head_motion(self, figsize=(12, 3)) -> None:
     fig, ax = plt.subplots(figsize=figsize, dpi=300)
 
     # 过滤 motion
-    df = self.head_motion[self.head_motion["motion"] <= 2].reset_index(drop=True)
+    df = self.head_motion[self.head_motion["motion"] <= 2].reset_index(
+        drop=True
+    )  # for the plot's scale will be better
     print(f"droped cols: \n{self.head_motion[self.head_motion['motion'] > 2]}")
 
     subjects = sorted(df["subjects"].unique())
@@ -552,7 +563,6 @@ if __name__ == "__main__":
         electrodes=ELECTRODES,
     )
     sensor_data = data_loader.load_sensor_positions()
-    # sensor_data["subjects"] = sensor_data["subjects"].astype(int).astype(str).str.zfill(2)
 
     cmap = plt.get_cmap(COLORMAP, 10)
     colors = [cmap(i / (10 - 1)) for i in range(10)]
@@ -567,7 +577,6 @@ if __name__ == "__main__":
         fontsize=fontsize,
     )
     analyzer.compute_head_movement()
-    # fig = analyzer.plot_head_motion()
     analyzer.print_motion_statistics()
 
     sensor_data.to_csv(SAVE_DIR / "MEG-head_motion.csv", index=False)

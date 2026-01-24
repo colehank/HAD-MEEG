@@ -191,3 +191,5 @@ logs/*
 
 ica_labels.json
 test.py
+test_*.py
+misc/
