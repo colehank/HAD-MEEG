@@ -6,20 +6,19 @@ This repository provides the codebase for preprocessing, validation, and visuali
 ## Installation
 Code is tested with **Python 3.11+** on Linux and MacOS.
 
-This project uses [`uv`]((https://docs.astral.sh/uv/getting-started/installation/)) for Python dependency management.
-
 ```bash
 git clone https://github.com/colehank/HAD-MEEG.git
 cd HAD-MEEG
+```
+
+This project uses [`uv`]((https://docs.astral.sh/uv/getting-started/installation/)) for Python dependency management.
+```bash
 uv sync
 ```
 
 Or, you can still install the dependencies with pip.
 
 ```bash
-git clone https://github.com/colehank/HAD-MEEG.git
-cd HAD-MEEG
-
 # using venv
 python -m venv .venv
 source .venv/bin/activate # On Windows: .venv\Scripts\activate
