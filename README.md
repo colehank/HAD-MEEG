@@ -1,6 +1,6 @@
 # HAD-MEEG: Human Action Dataset of Magnetoencephalography and Electroencephalography
 
-This repository provides the codebase for preprocessing, validation, and visualization associated with the *[A large-scale MEG and EEG dataset for human action recognition](https://reqbin.com/)*.
+This repository provides the codebase for preprocessing, validation, and visualization associated with the *[A large-scale MEG and EEG dataset for human action recognition]()*.
 ![Pipeline Diagram](resources/overview.png)
 
 ## Installation
@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 ## Configuration
 
-1. Download `HAD-MEEG` from OpenNeuro [dsxxxxxx]()
+1. Download `HAD-MEEG` from OpenNeuro [ds007353](https://openneuro.org/datasets/ds007353)
 
 1. Rename `.env_example` to  `.env`.
 
