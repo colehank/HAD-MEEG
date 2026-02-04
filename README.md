@@ -42,4 +42,42 @@ After this, you should be able to run all analyses in `scripts/`.
 
 ## Usage
 
-All analysis scripts are located in the `scripts/` directory. You can run them using `uv run scripts/step-*.py` or `python scripts/step-*.py` from project directory.
+### Running Analysis Scripts
+All preprocessing and analysis scripts are in the `scripts/` directory. Run them from the project root:
+
+```bash
+# Using uv
+uv run scripts/step-*.py
+
+# Or using Python directly
+python scripts/step-*.py
+```
+
+### Working with Epochs
+
+#### Filtering by Action Class
+Trial metadata is embedded in `mne.Epochs.metadata`, allowing you to filter epochs by action class or hierarchical categories.
+
+**Filter by specific action:**
+```python
+import mne
+
+epo = mne.read_epochs("HAD-MEEG/derivatives/epochs/sub-01_epo_meg.fif")
+surfing_epo = epo[epo.metadata["class_name"] == "Surfing"]
+```
+
+**Filter by hierarchical categories:**
+```python
+import mne
+
+epo = mne.read_epochs("HAD-MEEG/derivatives/epochs/sub-01_epo_meg.fif")
+
+# Level 1: Participating in Sports, Exercise, or Recreation
+sports_epo = epo[epo.metadata["superclass_level1"] == "Participating in Sports, Exercise, or Recreation"]
+
+# Level 2: Participating in water sports
+water_sports_epo = sports_epo[sports_epo.metadata["superclass_level2"] == "Participating in water sports"]
+
+# Specific class: Surfing
+surfing_epo = water_sports_epo[water_sports_epo.metadata["class_name"] == "Surfing"]
+```
