@@ -27,6 +27,7 @@ def _get_project_root() -> Path:
 
 PROJECT_ROOT = _get_project_root()
 ENV_FILE = PROJECT_ROOT / ".env"
+RESOURCES_ROOT = PROJECT_ROOT / "resources"
 
 
 class AnalyseConfig(BaseSettings):
@@ -56,7 +57,7 @@ class PlotConfig(BaseSettings):
 
     @cached_property
     def font_path(self) -> Path:
-        return Path("resources") / "font" / self.font_file
+        return RESOURCES_ROOT / "font" / self.font_file
 
     @cached_property
     def colors(self) -> dict[tuple]:

@@ -9,8 +9,6 @@ This script visualizes the results of RSA analysis by:
 """
 
 # %% Imports
-from pathlib import Path
-
 import numpy as np
 from joblib import load
 from matplotlib.colors import Normalize, ListedColormap
@@ -21,7 +19,7 @@ from matplotlib import font_manager as fm
 from src.rsa import TimeRDM
 from src.utils import get_soi_picks
 from src.evo import EvokedSet
-from src import DataConfig, PlotConfig
+from src import DataConfig, PlotConfig, RESOURCES_ROOT
 
 # %% Configuration and Constants
 cfg = DataConfig()
@@ -30,7 +28,7 @@ cfg_plot = PlotConfig()
 # Directory setup
 SAVE_DIR = cfg.results_root / "rsa"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
-RESOURCE_DIR = Path("./resources")
+RESOURCE_DIR = RESOURCES_ROOT
 EVO_DIR = cfg.results_root / "evos" / "grand_evo"
 RDMS_DIR = SAVE_DIR / "rdms"
 RDMS_DIR.mkdir(parents=True, exist_ok=True)

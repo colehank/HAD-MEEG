@@ -1,6 +1,4 @@
 # %%
-from pathlib import Path
-
 from mne_bids import read_raw_bids
 import mne
 from mne.io import BaseRaw
