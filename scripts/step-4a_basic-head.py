@@ -1,9 +1,5 @@
 # %%
-import sys
 from pathlib import Path
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import os
 from typing import List, Dict, Optional, Any
@@ -17,9 +13,12 @@ from src import DataConfig, PlotConfig
 
 cfg_data = DataConfig()
 cfg_plot = PlotConfig()
-DATA_DIR = Path(
-    "/nfs/z1/userhome/zzl-zhangguohao/workingdir/BIN/action/HAD-MEEG-BIDS"
-)  # REFERING TO CTF BIDS
+if cfg_data.ctf_root is None:
+    raise ValueError(
+        "step-4a requires the CTF-format (.ds) BIDS root. "
+        "Set MEEG_CTF_ROOT in your .env file."
+    )
+DATA_DIR = Path(cfg_data.ctf_root)  # REFERING TO CTF BIDS
 SAVE_DIR = cfg_data.results_root / "basic-head"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
