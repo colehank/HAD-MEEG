@@ -1,0 +1,276 @@
+# Instincts generated from https://github.com/colehank/HAD-MEEG
+# Generated: 2026-07-15T02:21:51.191Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: HAD-MEEG-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Commit Length
+
+## Action
+
+Write moderate-length commit messages (~56 characters)
+
+## Evidence
+
+- Average commit message length: 56 chars
+- Based on 4 commits
+
+---
+id: HAD-MEEG-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Naming Files
+
+## Action
+
+Use kebab-case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: kebab-case
+
+---
+id: HAD-MEEG-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: HAD-MEEG-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: HAD-MEEG-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: HAD-MEEG-workflow-update-shared-config-and-propagate-to-scripts
+trigger: "when doing update shared config and propagate to scripts"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Workflow Update Shared Config And Propagate To Scripts
+
+## Action
+
+Follow the update-shared-config-and-propagate-to-scripts workflow:
+1. Update src/config.py to add or modify config variables (e.g., resource roots, environment variable support).
+2. Update .env_example to document or remove relevant environment variables.
+3. Update scripts/step-*.py files to use the new/updated config variables instead of hardcoded paths or old config fields.
+4. Update pyproject.toml or src/__init__.py if project structure or exports change.
+5. Clean up unused imports or code left from previous config patterns.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/config.py, .env_example, scripts/step-*.py
+
+---
+id: HAD-MEEG-workflow-project-installation-and-import-path-upgrade
+trigger: "when doing project installation and import path upgrade"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/colehank/HAD-MEEG
+---
+
+# HAD MEEG Workflow Project Installation And Import Path Upgrade
+
+## Action
+
+Follow the project-installation-and-import-path-upgrade workflow:
+1. Update pyproject.toml to add or change build backend and package config.
+2. Remove sys.path manipulation boilerplate from all scripts.
+3. Regenerate uv.lock to reflect new editable install and dependencies.
+4. Test that scripts can import from src without sys.path hacks.
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: pyproject.toml, scripts/step-*.py, uv.lock
+
+---
+id: had-meeg-instinct-naming-conventions
+trigger: "When creating or renaming files, functions, classes, or constants in the codebase"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Naming Conventions
+
+## Action
+
+Use kebab-case for files, camelCase for functions, PascalCase for classes, and SCREAMING_SNAKE_CASE for constants
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions
+- Consistent naming in scripts and src
+
+---
+id: had-meeg-instinct-import-style
+trigger: "When importing modules within the package"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Import Style
+
+## Action
+
+Use relative imports instead of absolute imports
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+- Examples in src and scripts
+
+---
+id: had-meeg-instinct-export-style
+trigger: "When exporting functions or classes from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Export Style
+
+## Action
+
+Use named exports rather than default exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: had-meeg-instinct-git-commit-format
+trigger: "When writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Git Commit Format
+
+## Action
+
+Write a concise, imperative, freeform message without a prefix, typically under 60 characters
+
+## Evidence
+
+- Pattern in commits (freeform, no prefixes, average length 56)
+- Examples: 'Make .env fully drive scripts and drop per-script sys.path hack'
+
+---
+id: had-meeg-instinct-update-shared-config
+trigger: "When changing how scripts locate resources or read configuration (e.g., moving from hardcoded paths to environment variables or project-root-relative paths)"
+confidence: 0.92
+domain: workflow
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Update Shared Config
+
+## Action
+
+Synchronize changes across src/config.py, .env_example, scripts/step-*.py, pyproject.toml, and src/__init__.py, updating config variables, documentation, and script usage accordingly
+
+## Evidence
+
+- Workflow: update-shared-config-and-propagate-to-scripts
+- Commit sequence and file involvement in workflow definition
+
+---
+id: had-meeg-instinct-project-install-upgrade
+trigger: "When modernizing the project structure for better dependency management and import hygiene"
+confidence: 0.88
+domain: workflow
+source: repo-analysis
+source_repo: colehank/HAD-MEEG
+---
+
+# Had Meeg Instinct Project Install Upgrade
+
+## Action
+
+Update pyproject.toml for editable install, remove sys.path hacks from scripts, regenerate uv.lock, and test script imports
+
+## Evidence
+
+- Workflow: project-installation-and-import-path-upgrade
+- Commit sequence and file involvement in workflow definition
+
