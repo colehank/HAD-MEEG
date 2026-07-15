@@ -1,11 +1,7 @@
 # %%
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,26 +9,27 @@ import pandas as pd
 import seaborn as sns
 from matplotlib import font_manager as fm
 
-from src import DataConfig
+from src import DataConfig, PlotConfig
 
 
 # === Paths & constants ===
 config = DataConfig()
+cfg_plot = PlotConfig()
 DERI_EV_DIR = Path(config.derivatives_root) / "detailed_events"
 
 SAVE_DIR = config.results_root / "basic-accuracy"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 FONT_SIZE: int = 20
-FONT_PATH = Path("resources/Helvetica.ttc")
+FONT_PATH = cfg_plot.font_path
 
 COLORMAP = "Spectral"
 cmap = plt.get_cmap(COLORMAP, 10)
 colors = [cmap(i / (10 - 1)) for i in range(10)]
 COLOR_MEG = colors[2]
 COLOR_EEG = colors[-3]
-fm.fontManager.addfont(str(FONT_PATH))
-plt.rcParams["font.family"] = fm.FontProperties(fname=str(FONT_PATH)).get_name()
+fm.fontManager.addfont(FONT_PATH)
+plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
 # %%
 
 

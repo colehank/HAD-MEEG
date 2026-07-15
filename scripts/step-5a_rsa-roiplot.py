@@ -1,10 +1,4 @@
 # %%
-import sys
-from pathlib import Path
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import numpy as np
 import pandas as pd
 import nibabel as nib
@@ -13,13 +7,13 @@ from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from nilearn import plotting
 from matplotlib.patches import Patch
-from src import DataConfig
+from src import DataConfig, RESOURCES_ROOT
 # %% Configuration
 
 cfg = DataConfig()
 SAVE_DIR = cfg.results_root / "rsa"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
-ROI_DIR = Path("resources") / "rois"
+ROI_DIR = RESOURCES_ROOT / "rois"
 SURF_DIR = ROI_DIR / "surfaces"
 
 RES_ROI_DIR = SAVE_DIR / "rois"

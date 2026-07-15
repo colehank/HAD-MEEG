@@ -9,12 +9,6 @@ This script visualizes the results of RSA analysis by:
 """
 
 # %% Imports
-import sys
-from pathlib import Path
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import numpy as np
 from joblib import load
 from matplotlib.colors import Normalize, ListedColormap
@@ -25,15 +19,16 @@ from matplotlib import font_manager as fm
 from src.rsa import TimeRDM
 from src.utils import get_soi_picks
 from src.evo import EvokedSet
-from src import DataConfig
+from src import DataConfig, PlotConfig, RESOURCES_ROOT
 
 # %% Configuration and Constants
 cfg = DataConfig()
+cfg_plot = PlotConfig()
 
 # Directory setup
 SAVE_DIR = cfg.results_root / "rsa"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
-RESOURCE_DIR = Path("./resources")
+RESOURCE_DIR = RESOURCES_ROOT
 EVO_DIR = cfg.results_root / "evos" / "grand_evo"
 RDMS_DIR = SAVE_DIR / "rdms"
 RDMS_DIR.mkdir(parents=True, exist_ok=True)
@@ -45,8 +40,8 @@ ROIS = ["EV", "LS"]
 ROI_MAP = {"EV": "Early", "VS": "Ventral", "DS": "Dorsal", "LS": "Lateral"}
 
 # Plotting parameters
-FONT_SIZE = 12
-FONT_PATH = Path("resources") / "Helvetica.ttc"
+FONT_SIZE = cfg_plot.font_size
+FONT_PATH = cfg_plot.font_path
 fm.fontManager.addfont(FONT_PATH)
 plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
 

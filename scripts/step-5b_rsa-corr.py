@@ -1,17 +1,11 @@
 # %%
-import sys
-from pathlib import Path
-
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import numpy as np
 from joblib import load, dump
 from src.utils import get_soi_picks
 from src.evo import EvokedSet
 from src.rsa import TimeRDM, RSA
 from loguru import logger
-from src import DataConfig
+from src import DataConfig, RESOURCES_ROOT
 
 # import matplotlib.pyplot as plt
 # %%
@@ -85,7 +79,7 @@ def fusion(
 if __name__ == "__main__":
     mevo: EvokedSet = load(EVO_DIR / "grand_evo_meg.pkl")
     eevo: EvokedSet = load(EVO_DIR / "grand_evo_eeg.pkl")
-    fmri_rdms = np.load("resources/fmri-rdms.npz")
+    fmri_rdms = np.load(RESOURCES_ROOT / "fmri-rdms.npz")
 
     classorder = fmri_rdms["order"]
 
