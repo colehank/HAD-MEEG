@@ -1,24 +1,18 @@
 # %%
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import os
-from typing import List, Dict, Optional, Any
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pyctf import dsopen
 from matplotlib import font_manager as fm
+from mne.io.constants import FIFF
+from mne.transforms import apply_trans, invert_transform
+from mne_bids import BIDSPath, read_raw_bids
 from src import DataConfig, PlotConfig
 
 cfg_data = DataConfig()
 cfg_plot = PlotConfig()
-if cfg_data.ctf_root is None:
-    raise ValueError(
-        "step-4a requires the CTF-format (.ds) BIDS root. "
-        "Set MEEG_CTF_ROOT in your .env file."
-    )
-DATA_DIR = Path(cfg_data.ctf_root)  # REFERING TO CTF BIDS
 SAVE_DIR = cfg_data.results_root / "basic-head"
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -26,10 +20,11 @@ FONT_PATH = cfg_plot.font_path
 FONT_SIZE = cfg_plot.font_size
 ELECTRODES = ["nas", "lpa", "rpa"]
 N_PARTICIPANTS = cfg_data.source_df.query("datatype == 'meg'")["subject"].nunique()
-SESSIONS_CONFIG = {
-    range(1, 31): {
-        "ses-meg": 8,
-    }
+# CTF fiducial names -> FIFF cardinal identifiers (read from each run's .fif header)
+_CARDINAL_IDENT = {
+    "nas": FIFF.FIFFV_POINT_NASION,
+    "lpa": FIFF.FIFFV_POINT_LPA,
+    "rpa": FIFF.FIFFV_POINT_RPA,
 }
 COLORMAP = "Spectral"
 cmap = plt.get_cmap(COLORMAP, 10)
@@ -43,29 +38,30 @@ plt.rcParams["font.family"] = fm.FontProperties(fname=FONT_PATH).get_name()
 # %%
 class SensorDataLoader:
     """
-    Class to load and store sensor positions for participants.
+    Load head-coil fiducial positions (nas/lpa/rpa) for each MEG run.
+
+    Positions are read from every run's ``.fif`` header: the cardinal
+    fiducials in ``info['dig']`` (head coordinates) are transformed into the
+    device frame via ``info['dev_head_t']``, yielding one coordinate set per
+    run -- the same quantity CTF's ``ds.dewar`` provided, but recovered from
+    the publicly shared ``.fif`` data (no raw CTF ``.ds`` required). Head
+    movement is frame-invariant, so run-to-run motion matches the CTF result
+    exactly; only the absolute coordinates live in a different (rigidly
+    related) reference frame.
 
     Parameters
     ----------
-    root_dir : str
-        Root directory containing MEG data files.
-    n_participants : int
-        Number of participants.
-    sessions_config : Dict[int, Dict[str, int]]
-        Dictionary mapping subjects ranges to their session configurations.
+    bids_list : List[BIDSPath]
+        MEG BIDSPaths, one per run.
     electrodes : List[str]
-        List of electrode names to consider.
+        Fiducial names to extract (subset of nas/lpa/rpa).
 
     Attributes
     ----------
-    root_dir : str
-        Root directory containing MEG data files.
-    n_participants : int
-        Number of participants.
-    sessions_config : Dict[int, Dict[str, int]]
-        Session configurations for participants.
+    bids_list : List[BIDSPath]
+        MEG BIDSPaths to read.
     electrodes : List[str]
-        List of electrode names.
+        List of fiducial names.
     columns : List[str]
         Column names for the sensor data DataFrame.
     data : pd.DataFrame
@@ -74,14 +70,10 @@ class SensorDataLoader:
 
     def __init__(
         self,
-        root_dir: str,
-        n_participants: int,
-        sessions_config: Dict[int, Dict[str, int]],
+        bids_list: List[BIDSPath],
         electrodes: List[str],
     ) -> None:
-        self.root_dir = root_dir
-        self.n_participants = n_participants
-        self.sessions_config = sessions_config
+        self.bids_list = bids_list
         self.electrodes = electrodes
         self.columns = ["subjects", "session", "run"] + [
             f"{elec}_{axis}" for elec in electrodes for axis in ["x", "y", "z"]
@@ -90,87 +82,67 @@ class SensorDataLoader:
 
     def load_sensor_positions(self) -> pd.DataFrame:
         """
-        Load sensor positions for all participants, sessions, and runs.
+        Load fiducial positions for every MEG run.
 
         Returns
         -------
         pd.DataFrame
-            DataFrame containing sensor positions for all runs.
+            DataFrame containing fiducial positions for all runs, sorted by
+            subject, session, and run.
         """
         all_rows: List[Dict[str, Any]] = []
-        for subjects in range(1, self.n_participants + 1):
-            participant_sessions = self._get_participant_sessions(subjects)
-            for session, n_runs in participant_sessions.items():
-                for run in range(1, n_runs + 1):
-                    row = self._load_single_run(subjects, session, run, task="action")
-                    if row:
-                        all_rows.append(row)
-        self.data = pd.DataFrame(all_rows, columns=self.columns)
+        for bids in self.bids_list:
+            row = self._load_single_run(bids)
+            if row:
+                all_rows.append(row)
+        self.data = (
+            pd.DataFrame(all_rows, columns=self.columns)
+            .sort_values(["subjects", "session", "run"])
+            .reset_index(drop=True)
+        )
         return self.data
 
-    def _get_participant_sessions(self, subjects: int) -> Dict[str, int]:
+    def _load_single_run(self, bids: BIDSPath) -> Optional[Dict[str, Any]]:
         """
-        Get the session configuration for a subjects.
+        Read one run's fiducials from its ``.fif`` header (device frame, cm).
 
         Parameters
         ----------
-        subjects : int
-            subjects number.
-
-        Returns
-        -------
-        Dict[str, int]
-            Session configuration for the subjects.
-        """
-        for participant_range, sessions in self.sessions_config.items():
-            if subjects in participant_range:
-                return sessions
-        return {}
-
-    def _load_single_run(
-        self, subjects: int, session: str, run: int, task: str
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Load sensor positions for a single run.
-
-        Parameters
-        ----------
-        subjects : int
-            subjects number.
-        session : str
-            Session identifier.
-        run : int
-            Run number.
+        bids : BIDSPath
+            BIDSPath of the MEG run.
 
         Returns
         -------
         Optional[Dict[str, Any]]
-            Dictionary containing sensor positions for the run,
-            or None if the file is not found.
+            Dictionary of fiducial positions for the run, or None if the file
+            is missing or lacks the cardinal fiducials.
         """
-        meg_fn = (
-            f"{self.root_dir}/sub-{subjects:02d}/{session}/meg/"
-            f"sub-{subjects:02d}_{session}_task-{task}_run-{run:02}_meg.ds"
-        )
-        if os.path.exists(meg_fn):
-            ds = dsopen(meg_fn)
-            row: Dict[str, Any] = {
-                "subjects": subjects,
-                "session": session,
-                "run": run,
-            }
-            for i, elec in enumerate(self.electrodes):
-                row.update(
-                    {
-                        f"{elec}_x": ds.dewar[i][0],
-                        f"{elec}_y": ds.dewar[i][1],
-                        f"{elec}_z": ds.dewar[i][2],
-                    }
-                )
-            return row
-        else:
-            print(f"File not found: {meg_fn}")
+        if not bids.fpath.exists():
+            print(f"File not found: {bids.fpath}")
             return None
+
+        raw = read_raw_bids(bids, verbose="ERROR")
+        cardinals = {
+            d["ident"]: d["r"]
+            for d in raw.info["dig"] or []
+            if d["kind"] == FIFF.FIFFV_POINT_CARDINAL
+        }
+        head_to_dev = invert_transform(raw.info["dev_head_t"])
+
+        row: Dict[str, Any] = {
+            "subjects": int(bids.subject),
+            "session": f"ses-{bids.session}",
+            "run": int(bids.run),
+        }
+        for elec in self.electrodes:
+            ident = _CARDINAL_IDENT[elec]
+            if ident not in cardinals:
+                print(f"Missing {elec} fiducial in {bids.fpath}")
+                return None
+            # head coords (m) -> device/dewar frame -> cm (CTF ds.dewar units)
+            x, y, z = apply_trans(head_to_dev, cardinals[ident]) * 100.0
+            row[f"{elec}_x"], row[f"{elec}_y"], row[f"{elec}_z"] = x, y, z
+        return row
 
 
 class HeadMovementAnalyzer:
@@ -560,12 +532,8 @@ def plot_head_motion(self, figsize=(12, 3)) -> None:
 
 # %%
 if __name__ == "__main__":
-    data_loader = SensorDataLoader(
-        root_dir=DATA_DIR,
-        n_participants=N_PARTICIPANTS,
-        sessions_config=SESSIONS_CONFIG,
-        electrodes=ELECTRODES,
-    )
+    meg_bids = [bp for bp in cfg_data.source_bids_list if bp.datatype == "meg"]
+    data_loader = SensorDataLoader(bids_list=meg_bids, electrodes=ELECTRODES)
     sensor_data = data_loader.load_sensor_positions()
 
     cmap = plt.get_cmap(COLORMAP, 10)

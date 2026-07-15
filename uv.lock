@@ -378,7 +378,6 @@ dependencies = [
     { name = "nibabel" },
     { name = "nilearn" },
     { name = "onnxruntime" },
-    { name = "pyctf-nihmegcore" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyprep" },
@@ -400,7 +399,6 @@ requires-dist = [
     { name = "nibabel", specifier = ">=5.3.2" },
     { name = "nilearn", specifier = ">=0.12.1" },
     { name = "onnxruntime", specifier = ">=1.23.2" },
-    { name = "pyctf-nihmegcore", specifier = ">=1.1.1" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "pyprep", specifier = ">=0.4.3" },
@@ -1477,19 +1475,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cd/05/0a34433a064256a578f1783a10da6df098ceaa4a57bbeaa96a6c0352786b/pure_eval-0.2.3.tar.gz", hash = "sha256:5f4e983f40564c576c7c8635ae88db5956bb2229d7e9237d03b3c0b0190eaf42", size = 19752, upload-time = "2024-07-21T12:58:21.801Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl", hash = "sha256:1db8e35b67b3d218d818ae653e27f06c3aa420901fa7b081ca98cbedc874e0d0", size = 11842, upload-time = "2024-07-21T12:58:20.04Z" },
-]
-
-[[package]]
-name = "pyctf-nihmegcore"
-version = "1.1.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'win32'" },
-    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/3d/8ce92a1def8064bf85c495a98e14fbff1fcf6f01a350417047022f401e07/pyctf_nihmegcore-1.1.2.tar.gz", hash = "sha256:8fc80930f1fe6083b374f3736d6feb7016cf6482283d16855eeda514f904e456", size = 29090, upload-time = "2025-12-09T22:08:17.136Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/fb/5341f132662c39260399d8d55a5fd54bd132d98ecd037f1737c7e9ba9fcc/pyctf_nihmegcore-1.1.2-py3-none-any.whl", hash = "sha256:0e42526571da77af41053abf4dfe73968fb3d740347e424f8c6f345f757a0c68", size = 33738, upload-time = "2025-12-09T22:08:16Z" },
 ]
 
 [[package]]

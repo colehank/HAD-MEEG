@@ -74,7 +74,6 @@ class DataConfig(BaseSettings):
     bids_root: DirectoryPath
     derivatives_root: Path | None = None
     results_root: Path | None = None
-    ctf_root: Path | None = None  # CTF-format (.ds) BIDS root, used by step-4a
 
     subjects: list[str] = Field(default_factory=list)
     sessions: list[str | None] = Field(default_factory=list)
